@@ -1,0 +1,223 @@
+---
+# Delete Kubernetes Objects like VolumeSnapshots, PersistentVolumeClaims, and StorageClasses created by the create_k8s_objects role.
+
+# Delete VolumeSnapshots of the specified PVCs from the given namespace
+- name: Delete VolumeSnapshots of the specified PVCs from {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: VolumeSnapshot
+    namespace: "{{ pvc_namespace | default('') }}"
+    name: "{{ item.snapshot_name }}"
+  loop: "{{ volume_snapshot_specs | default([]) }}"
+  when: 
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.snapshot_name is defined and item.snapshot_name != ""
+  tags:
+    - k8s_delete_volume_snapshots
+# Note: VolumeSnapshots are namespaced resources, so we delete them from the specified namespace.
+
+# Delete VolumeSnapshotClass (cluster-scoped resource)
+- name: Delete VolumeSnapshotClass {{ vol_snapshot_class_specs.name | default('') }}
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: VolumeSnapshotClass
+    name: "{{ vol_snapshot_class_specs.name | default('') }}"
+  when:
+    - vol_snapshot_class_specs is defined
+    - vol_snapshot_class_specs.name is defined and vol_snapshot_class_specs.name != ""
+  tags:
+    - k8s_delete_volume_snapshot_class
+# Note: VolumeSnapshotClass is a cluster-scoped resource, so we do not specify a namespace.
+
+# Delete PVCs with NFS storage class from the specified namespace
+- name: Delete NFS PVCs from {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: PersistentVolumeClaim
+    namespace: "{{ pvc_namespace | default('') }}"
+    name: "{{ item.pvc_name }}"
+  loop: "{{ nfs_specs.pvc_info | default([]) }}"
+  when: 
+    - configure_nfs == true
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+  tags:
+    - k8s_delete_nfs_pvcs
+# Note: PVCs are namespaced resources, so we delete them from the specified namespace.
+
+# Delete PVCs with NFS FlexGroup storage class from the specified namespace
+- name: Delete NFS FlexGroup PVCs from {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: PersistentVolumeClaim
+    namespace: "{{ pvc_namespace | default('') }}"
+    name: "{{ item.pvc_name }}"
+  loop: "{{ nfs_flexgroup_specs.pvc_info | default([]) }}"
+  when: 
+    - configure_nfs_flexgroup == true
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+  tags:
+    - k8s_delete_nfs_flexgroup_pvcs
+
+# Delete PVCs with iSCSI storage class from the specified namespace
+- name: Delete iSCSI PVCs from {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: PersistentVolumeClaim
+    namespace: "{{ pvc_namespace | default('') }}"
+    name: "{{ item.pvc_name }}"
+  loop: "{{ iscsi_specs.pvc_info | default([]) }}"
+  when:
+    - configure_iscsi == true
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+  tags:
+    - k8s_delete_iscsi_pvcs
+
+# Delete PVCs with NVMe/TCP storage class from the specified namespace
+- name: Delete NVMe/TCP PVCs from {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: PersistentVolumeClaim
+    namespace: "{{ pvc_namespace | default('') }}"
+    name: "{{ item.pvc_name }}"
+  loop: "{{ nvme_tcp_specs.pvc_info | default([]) }}"
+  when:
+    - configure_nvme_tcp == true
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+  tags:
+    - k8s_delete_nvme_tcp_pvcs
+
+# Delete PVCs with FCP storage class from the specified namespace
+- name: Delete FCP PVCs from {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: PersistentVolumeClaim 
+    namespace: "{{ pvc_namespace | default('') }}"
+    name: "{{ item.pvc_name }}"
+  loop: "{{ fcp_specs.pvc_info | default([]) }}"
+  when:
+    - configure_fcp == true
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+  tags:
+    - k8s_delete_fcp_pvcs
+
+# Delete namespace that was created for provisioning PVCs
+- name: Delete namespace {{ pvc_namespace | default('') }}
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: Namespace
+    name: "{{ pvc_namespace | default('') }}"
+  when: pvc_namespace is defined and pvc_namespace != ""
+  tags:
+    - k8s_delete_namespace
+
+# Delete StorageClasses (cluster-scoped resources) created for each backend (NFS, NFS FlexGroup, iSCSI, NVMe/TCP, FCP)
+
+# Delete NFS StorageClass
+- name: Delete NFS StorageClass {{ nfs_specs.sc_name | default('') }}
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    name: "{{ nfs_specs.sc_name | default('') }}"
+  when:
+    - configure_nfs == true
+    - nfs_specs is defined 
+    - nfs_specs.sc_name is defined and nfs_specs.sc_name != ""
+  tags:
+    - k8s_delete_nfs_storage_class
+# Note: StorageClass is a cluster-scoped resource, so we do not specify a namespace.
+
+# Delete NFS FlexGroup StorageClass
+- name: Delete NFS FlexGroup StorageClass {{ nfs_flexgroup_specs.sc_name | default('') }}
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    name: "{{ nfs_flexgroup_specs.sc_name | default('') }}"
+  when:
+    - configure_nfs_flexgroup == true
+    - nfs_flexgroup_specs is defined
+    - nfs_flexgroup_specs.sc_name is defined and nfs_flexgroup_specs.sc_name != ""
+  tags:
+    - k8s_delete_nfs_flexgroup_storage_class
+
+# Delete iSCSI StorageClass
+- name: Delete iSCSI StorageClass {{ iscsi_specs.sc_name | default('') }}
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    name: "{{ iscsi_specs.sc_name | default('') }}"
+  when:
+    - configure_iscsi == true
+    - iscsi_specs is defined
+    - iscsi_specs.sc_name is defined and iscsi_specs.sc_name != ""
+  tags:
+    - k8s_delete_iscsi_storage_class
+
+# Delete NVMe/TCP StorageClass
+- name: Delete NVMe/TCP StorageClass {{ nvme_tcp_specs.sc_name | default('') }}
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    name: "{{ nvme_tcp_specs.sc_name | default('') }}"
+  when:
+    - configure_nvme_tcp == true
+    - nvme_tcp_specs is defined
+    - nvme_tcp_specs.sc_name is defined and nvme_tcp_specs.sc_name != ""
+  tags:
+    - k8s_delete_nvme_tcp_storage_class
+
+# Delete FCP StorageClass
+- name: Delete FCP StorageClass {{ fcp_specs.sc_name | default('') }}
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    name: "{{ fcp_specs.sc_name | default('') }}"
+  when:
+    - configure_fcp == true
+    - fcp_specs is defined
+    - fcp_specs.sc_name is defined and fcp_specs.sc_name != ""
+  tags:
+    - k8s_delete_fcp_storage_class

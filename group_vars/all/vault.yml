@@ -1,0 +1,17 @@
+---
+# Make sure to encrypt this file using ansible-vault to protect sensitive information
+# ansible-vault encrypt group_vars/all/vault.yml
+
+# OpenShift Cluster login information to connect to the OpenShift Cluster
+# Note: Make sure the API token is latest and is not expired
+oc_api_url: "https://api.aa02-ocp.flexpodb4.cisco.com:6443"    # Replace with your OpenShift API URL
+oc_api_token: "<your_api_token>"                               # Replace with your OpenShift API token
+
+# AppMirror relationship cluster login specifications for VM replication (disaster recovery) scenario
+# Source OpenShift Cluster login information to connect to the Source OpenShift Cluster
+src_oc_api_url: "https://api.source-ocp.example.com:6443"       # Replace with your Source OpenShift API URL
+src_oc_api_token: "<your_source_api_token>"                     # Replace with your Source OpenShift API token
+
+# Destination OpenShift Cluster login information to connect to the Destination OpenShift Cluster
+dst_oc_api_url: "https://api.destination-ocp.example.com:6443"     # Replace with your Destination OpenShift API URL
+dst_oc_api_token: "<your_destination_api_token>"                   # Replace with your Destination OpenShift API token

@@ -1,0 +1,559 @@
+---
+# Create Kubernetes Objects like StorageClasses, PersistentVolumeClaims (PVCs), VolumeSnapshots etc.
+
+# Create NFS storage class with specified volume binding mode
+- name: Create NFS storage class with {{ nfs_specs.sc_volume_binding_mode | default('') }} volume binding mode
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: "{{ nfs_specs.sc_name }}"
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "false"
+      provisioner: csi.trident.netapp.io
+      parameters:
+        backendType: "ontap-nas"
+        provisioningType: "thin"
+        snapshots: "true"
+      allowVolumeExpansion: true
+      reclaimPolicy: "{{ nfs_specs.sc_reclaim_policy | default('Retain') }}"
+      volumeBindingMode: "{{ nfs_specs.sc_volume_binding_mode }}"
+      mountOptions:
+        - nfsvers="{{ nfs_specs.nfs_version }}"
+  when:
+    - configure_nfs == true
+    - nfs_specs is defined
+    - nfs_specs.sc_name is defined and nfs_specs.sc_name != ""
+    - nfs_specs.sc_volume_binding_mode is defined and nfs_specs.sc_volume_binding_mode != ""
+    - nfs_specs.nfs_version is defined and nfs_specs.nfs_version != ""
+  tags:
+    - k8s_create_nfs_storage_class
+
+# Create NFS FlexGroup storage class with specified volume binding mode
+- name: Create NFS FlexGroup storage class with {{ nfs_flexgroup_specs.sc_volume_binding_mode | default('') }} volume binding mode
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: "{{ nfs_flexgroup_specs.sc_name }}"
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "false"
+      provisioner: csi.trident.netapp.io
+      parameters:
+        backendType: "ontap-nas-flexgroup"
+        provisioningType: "thin"
+        snapshots: "true"
+      allowVolumeExpansion: true
+      reclaimPolicy: "{{ nfs_flexgroup_specs.sc_reclaim_policy | default('Retain') }}"
+      volumeBindingMode: "{{ nfs_flexgroup_specs.sc_volume_binding_mode }}"
+      mountOptions:
+        - nfsvers="{{ nfs_flexgroup_specs.nfs_version }}"
+  when:
+    - configure_nfs_flexgroup == true
+    - nfs_flexgroup_specs is defined
+    - nfs_flexgroup_specs.sc_name is defined and nfs_flexgroup_specs.sc_name != ""
+    - nfs_flexgroup_specs.sc_volume_binding_mode is defined and nfs_flexgroup_specs.sc_volume_binding_mode != ""
+    - nfs_flexgroup_specs.nfs_version is defined and nfs_flexgroup_specs.nfs_version != ""
+  tags:
+    - k8s_create_nfs_flexgroup_storage_class
+
+# Create iSCSI storage class with specified volume binding mode
+- name: Create iSCSI storage class with {{ iscsi_specs.sc_volume_binding_mode | default('') }} volume binding mode
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: "{{ iscsi_specs.sc_name }}"
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "false"
+      provisioner: csi.trident.netapp.io
+      parameters:
+        backendType: "ontap-san"
+        sanType: "iscsi"
+        provisioningType: "thin"
+        snapshots: "true"
+      allowVolumeExpansion: true
+      reclaimPolicy: "{{ iscsi_specs.sc_reclaim_policy | default('Retain') }}"
+      volumeBindingMode: "{{ iscsi_specs.sc_volume_binding_mode }}"
+  when:
+    - configure_iscsi == true
+    - iscsi_specs is defined
+    - iscsi_specs.sc_name is defined and iscsi_specs.sc_name != ""
+    - iscsi_specs.sc_volume_binding_mode is defined and iscsi_specs.sc_volume_binding_mode != ""
+  tags:
+    - k8s_create_iscsi_storage_class
+
+# Create NVMe/TCP storage class with specified volume binding mode
+- name: Create NVMe/TCP storage class with {{ nvme_tcp_specs.sc_volume_binding_mode | default('') }} volume binding mode
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: "{{ nvme_tcp_specs.sc_name }}"
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "false"
+      provisioner: csi.trident.netapp.io
+      parameters:
+        backendType: "ontap-san"
+        sanType: "nvme"
+        provisioningType: "thin"
+        snapshots: "true"
+      allowVolumeExpansion: true
+      reclaimPolicy: "{{ nvme_tcp_specs.sc_reclaim_policy | default('Retain') }}"
+      volumeBindingMode: "{{ nvme_tcp_specs.sc_volume_binding_mode }}"
+  when:
+    - configure_nvme_tcp == true
+    - nvme_tcp_specs is defined
+    - nvme_tcp_specs.sc_name is defined and nvme_tcp_specs.sc_name != ""
+    - nvme_tcp_specs.sc_volume_binding_mode is defined and nvme_tcp_specs.sc_volume_binding_mode != ""
+  tags:
+    - k8s_create_nvme_tcp_storage_class
+
+# Create FCP storage class with specified volume binding mode
+- name: Create FCP storage class with {{ fcp_specs.sc_volume_binding_mode | default('') }} volume binding mode
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: "{{ fcp_specs.sc_name }}"
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "false"
+      provisioner: csi.trident.netapp.io
+      parameters:
+        backendType: "ontap-san"
+        sanType: "fcp"
+        provisioningType: "thin"
+        snapshots: "true"
+      allowVolumeExpansion: true
+      reclaimPolicy: "{{ fcp_specs.sc_reclaim_policy | default('Retain') }}"
+      volumeBindingMode: "{{ fcp_specs.sc_volume_binding_mode }}"
+  when:
+    - configure_fcp == true
+    - fcp_specs is defined
+    - fcp_specs.sc_name is defined and fcp_specs.sc_name != ""
+    - fcp_specs.sc_volume_binding_mode is defined and fcp_specs.sc_volume_binding_mode != ""
+  tags:
+    - k8s_create_fcp_storage_class
+
+# Get all existing storage classes to check for current default
+- name: Get all existing storage classes
+  kubernetes.core.k8s_info:
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    api_version: storage.k8s.io/v1
+  register: existing_storage_classes
+  when:
+    - default_sc is defined and default_sc != ""
+    - configure_nfs or configure_nfs_flexgroup or configure_iscsi or configure_nvme_tcp or configure_fcp
+  tags:
+    - k8s_set_default_storage_class
+
+# Remove default annotation from any existing default storage classes
+- name: Remove default annotation from existing default storage classes
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    api_version: storage.k8s.io/v1
+    name: "{{ item.metadata.name }}"
+    merge_type: strategic-merge
+    definition:
+      metadata:
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "false"
+  loop: "{{ existing_storage_classes.resources | default([]) }}"
+  when:
+    - default_sc is defined and default_sc != ""
+    - configure_nfs or configure_nfs_flexgroup or configure_iscsi or configure_nvme_tcp or configure_fcp
+    - item.metadata.annotations is defined
+    - item.metadata.annotations['storageclass.kubernetes.io/is-default-class'] is defined
+    - item.metadata.annotations['storageclass.kubernetes.io/is-default-class'] | string == "true"
+  tags:
+    - k8s_set_default_storage_class
+
+# Set one of the created storage classes as the default storage class
+- name: Set {{ default_sc | default('') }} as the default storage class
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: StorageClass
+    api_version: storage.k8s.io/v1
+    name: "{{ default_sc }}"
+    merge_type: strategic-merge
+    definition:
+      metadata:
+        annotations:
+          storageclass.kubernetes.io/is-default-class: "true"
+  when:
+    - default_sc is defined and default_sc != ""
+    - configure_nfs or configure_nfs_flexgroup or configure_iscsi or configure_nvme_tcp or configure_fcp
+  tags:
+    - k8s_set_default_storage_class
+
+# Create a new project/namespace for creating PVCs
+- name: Create a new project/namespace for creating PVCs
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ pvc_namespace }}"
+  when:
+    - configure_nfs or configure_nfs_flexgroup or configure_iscsi or configure_nvme_tcp or configure_fcp
+    - pvc_namespace is defined and pvc_namespace != ""
+  tags:
+    - k8s_create_pvc_namespace
+
+# Create PVCs with NFS storage class in the specified namespace
+- name: Create PVCs with NFS storage class in the {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    namespace: "{{ pvc_namespace | default('') }}"
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ item.pvc_name }}"
+      spec:
+        accessModes: "{{ item.access_modes }}"
+        resources:
+          requests:
+            storage: "{{ item.pvc_size }}"
+        storageClassName: "{{ nfs_specs.sc_name }}"
+        volumeMode: Filesystem
+  loop: "{{ nfs_specs.pvc_info | default([]) }}"
+  when:
+    - configure_nfs == true
+    - nfs_specs is defined
+    - nfs_specs.sc_name is defined and nfs_specs.sc_name != ""
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.pvc_size is defined and item.pvc_size != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+  tags:
+    - k8s_create_nfs_pvcs
+
+# Create PVCs with NFS FlexGroup storage class in the specified namespace
+- name: Create PVCs with NFS FlexGroup storage class in the {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    namespace: "{{ pvc_namespace | default('') }}"
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ item.pvc_name }}"
+      spec:
+        accessModes: "{{ item.access_modes }}"
+        resources:
+          requests:
+            storage: "{{ item.pvc_size }}"
+        storageClassName: "{{ nfs_flexgroup_specs.sc_name }}"
+        volumeMode: Filesystem
+  loop: "{{ nfs_flexgroup_specs.pvc_info | default([]) }}"
+  when:
+    - configure_nfs_flexgroup == true
+    - nfs_flexgroup_specs is defined
+    - nfs_flexgroup_specs.sc_name is defined and nfs_flexgroup_specs.sc_name != ""
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.pvc_size is defined and item.pvc_size != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+    - >
+      (item.pvc_size is match('^[0-9]+Ki$') and (item.pvc_size | regex_replace('Ki$', '') | int) >= 838860800) or
+      (item.pvc_size is match('^[0-9]+Mi$') and (item.pvc_size | regex_replace('Mi$', '') | int) >= 819200) or
+      (item.pvc_size is match('^[0-9]+Gi$') and (item.pvc_size | regex_replace('Gi$', '') | int) >= 800) or
+      (item.pvc_size is match('^[0-9]+Ti$') and (item.pvc_size | regex_replace('Ti$', '') | int) >= 1) or
+      (item.pvc_size is match('^[0-9]+Pi$')) or
+      (item.pvc_size is match('^[0-9]+Ei$'))
+  tags:
+    - k8s_create_nfs_flexgroup_pvcs
+
+# Warn about skipped NFS FlexGroup PVCs with size less than 800Gi
+- name: Display warning for NFS FlexGroup PVCs with size less than 800Gi
+  ansible.builtin.debug:
+    msg: "WARNING: Skipping PVC '{{ item.pvc_name }}' - NFS FlexGroup requires minimum size of 800Gi. Requested size: {{ item.pvc_size }}"
+  loop: "{{ nfs_flexgroup_specs.pvc_info | default([]) }}"
+  when:
+    - configure_nfs_flexgroup == true
+    - nfs_flexgroup_specs is defined
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.pvc_size is defined and item.pvc_size != ""
+    - >
+      not (
+        (item.pvc_size is match('^[0-9]+Ki$') and (item.pvc_size | regex_replace('Ki$', '') | int) >= 838860800) or
+        (item.pvc_size is match('^[0-9]+Mi$') and (item.pvc_size | regex_replace('Mi$', '') | int) >= 819200) or
+        (item.pvc_size is match('^[0-9]+Gi$') and (item.pvc_size | regex_replace('Gi$', '') | int) >= 800) or
+        (item.pvc_size is match('^[0-9]+Ti$') and (item.pvc_size | regex_replace('Ti$', '') | int) >= 1) or
+        (item.pvc_size is match('^[0-9]+Pi$')) or
+        (item.pvc_size is match('^[0-9]+Ei$'))
+      )
+  tags:
+    - k8s_create_nfs_flexgroup_pvcs
+
+# Create PVCs with iSCSI storage class in the specified namespace
+- name: Create PVCs with iSCSI storage class in the {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    namespace: "{{ pvc_namespace | default('') }}"
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ item.pvc_name }}"
+      spec:
+        accessModes: "{{ item.access_modes }}"
+        resources:
+          requests:
+            storage: "{{ item.pvc_size }}"
+        storageClassName: "{{ iscsi_specs.sc_name }}"
+        volumeMode: "{{ item.volume_mode | default('Filesystem') }}"
+  loop: "{{ iscsi_specs.pvc_info | default([]) }}"
+  when:
+    - configure_iscsi == true
+    - iscsi_specs is defined
+    - iscsi_specs.sc_name is defined and iscsi_specs.sc_name != ""
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.pvc_size is defined and item.pvc_size != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+    - not ('ReadWriteMany' in item.access_modes and (item.volume_mode | default('Filesystem')) == 'Filesystem')
+  tags:
+    - k8s_create_iscsi_pvcs
+
+# Warn about skipped iSCSI PVCs with unsupported RWX + Filesystem combination
+- name: Display warning for iSCSI PVCs with unsupported RWX + Filesystem configuration
+  ansible.builtin.debug:
+    msg: "WARNING: Skipping PVC '{{ item.pvc_name }}' - iSCSI does not support ReadWriteMany (RWX) access mode with Filesystem volume mode. Use ReadWriteMany (RWX) with Block volume mode."
+  loop: "{{ iscsi_specs.pvc_info | default([]) }}"
+  when:
+    - configure_iscsi == true
+    - iscsi_specs is defined
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+    - 'ReadWriteMany' in item.access_modes
+    - (item.volume_mode | default('Filesystem')) == 'Filesystem'
+  tags:
+    - k8s_create_iscsi_pvcs
+
+# Create PVCs with NVMe/TCP storage class in the specified namespace
+- name: Create PVCs with NVMe/TCP storage class in the {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    namespace: "{{ pvc_namespace | default('') }}"
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ item.pvc_name }}"
+      spec:
+        accessModes: "{{ item.access_modes }}"
+        resources:
+          requests:
+            storage: "{{ item.pvc_size }}"
+        storageClassName: "{{ nvme_tcp_specs.sc_name }}"
+        volumeMode: "{{ item.volume_mode | default('Filesystem') }}"
+  loop: "{{ nvme_tcp_specs.pvc_info | default([]) }}"
+  when:
+    - configure_nvme_tcp == true
+    - nvme_tcp_specs is defined
+    - nvme_tcp_specs.sc_name is defined and nvme_tcp_specs.sc_name != ""
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.pvc_size is defined and item.pvc_size != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+    - not ('ReadWriteMany' in item.access_modes and (item.volume_mode | default('Filesystem')) == 'Filesystem')
+  tags:
+    - k8s_create_nvme_tcp_pvcs
+
+# Warn about skipped NVMe/TCP PVCs with unsupported RWX + Filesystem combination
+- name: Display warning for NVMe/TCP PVCs with unsupported RWX + Filesystem configuration
+  ansible.builtin.debug:
+    msg: "WARNING: Skipping PVC '{{ item.pvc_name }}' - NVMe/TCP does not support ReadWriteMany (RWX) access mode with Filesystem volume mode. Use ReadWriteMany (RWX) with Block volume mode."
+  loop: "{{ nvme_tcp_specs.pvc_info | default([]) }}"
+  when:
+    - configure_nvme_tcp == true
+    - nvme_tcp_specs is defined
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+    - 'ReadWriteMany' in item.access_modes
+    - (item.volume_mode | default('Filesystem')) == 'Filesystem'
+  tags:
+    - k8s_create_nvme_tcp_pvcs
+
+# Create PVCs with FCP storage class in the specified namespace
+- name: Create PVCs with FCP storage class in the {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    namespace: "{{ pvc_namespace | default('') }}"
+    definition:
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: "{{ item.pvc_name }}"
+      spec:
+        accessModes: "{{ item.access_modes }}"
+        resources:
+          requests:
+            storage: "{{ item.pvc_size }}"
+        storageClassName: "{{ fcp_specs.sc_name }}"
+        volumeMode: "{{ item.volume_mode | default('Filesystem') }}"
+  loop: "{{ fcp_specs.pvc_info | default([]) }}"
+  when:
+    - configure_fcp == true
+    - fcp_specs is defined
+    - fcp_specs.sc_name is defined and fcp_specs.sc_name != ""
+    - pvc_namespace is defined and pvc_namespace != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.pvc_size is defined and item.pvc_size != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+    - not ('ReadWriteMany' in item.access_modes and (item.volume_mode | default('Filesystem')) == 'Filesystem')
+  tags:
+    - k8s_create_fcp_pvcs
+
+# Warn about skipped FCP PVCs with unsupported RWX + Filesystem combination
+- name: Display warning for FCP PVCs with unsupported RWX + Filesystem configuration
+  ansible.builtin.debug:
+    msg: "WARNING: Skipping PVC '{{ item.pvc_name }}' - FCP does not support ReadWriteMany (RWX) access mode with Filesystem volume mode. Use ReadWriteMany (RWX) with Block volume mode."
+  loop: "{{ fcp_specs.pvc_info | default([]) }}"
+  when:
+    - configure_fcp == true
+    - fcp_specs is defined
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.access_modes is defined and item.access_modes | length > 0
+    - 'ReadWriteMany' in item.access_modes
+    - (item.volume_mode | default('Filesystem')) == 'Filesystem'
+  tags:
+    - k8s_create_fcp_pvcs
+
+# Create VolumeSnapshotClass for snapshot operations
+- name: Create VolumeSnapshotClass for snapshot operations
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: snapshot.storage.k8s.io/v1
+      kind: VolumeSnapshotClass
+      metadata:
+        name: "{{ vol_snapshot_class_specs.name }}"
+      driver: csi.trident.netapp.io
+      deletionPolicy: "{{ vol_snapshot_class_specs.deletion_policy | default('Delete') }}"
+  when:
+    - vol_snapshot_class_specs is defined
+    - vol_snapshot_class_specs.name is defined and vol_snapshot_class_specs.name != ""
+  tags:
+    - k8s_create_volume_snapshot_class
+
+# Below tasks are for creating VolumeSnapshots of the PVCs created above
+# Get all PVCs in the namespace to validate before creating snapshots
+- name: Get all PVCs in the {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s_info:
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    kind: PersistentVolumeClaim
+    namespace: "{{ pvc_namespace | default('') }}"
+    api_version: v1
+  register: existing_pvcs
+  when:
+    - pvc_namespace is defined and pvc_namespace != ""
+    - volume_snapshot_specs is defined
+  tags:
+    - k8s_create_volume_snapshots
+
+# Create VolumeSnapshots of the specified PVCs in the given namespace
+- name: Create VolumeSnapshots of the specified PVCs in the {{ pvc_namespace | default('') }} namespace
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    namespace: "{{ pvc_namespace | default('') }}"
+    definition:
+      apiVersion: snapshot.storage.k8s.io/v1
+      kind: VolumeSnapshot
+      metadata:
+        name: "{{ item.snapshot_name }}"
+      spec:
+        volumeSnapshotClassName: "{{ vol_snapshot_class_specs.name }}"
+        source:
+          persistentVolumeClaimName: "{{ item.pvc_name }}"
+  loop: "{{ volume_snapshot_specs | default([]) }}"
+  when:
+    - pvc_namespace is defined and pvc_namespace != ""
+    - vol_snapshot_class_specs is defined
+    - vol_snapshot_class_specs.name is defined and vol_snapshot_class_specs.name != ""
+    - item.snapshot_name is defined and item.snapshot_name != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+    - existing_pvcs is defined
+    - existing_pvcs.resources is defined
+    - item.pvc_name in (existing_pvcs.resources | map(attribute='metadata.name') | list)
+  tags:
+    - k8s_create_volume_snapshots
+
+# Display warning for snapshots with non-existent PVCs
+- name: Display warning for VolumeSnapshots with non-existent PVCs
+  ansible.builtin.debug:
+    msg: "WARNING: Skipping snapshot '{{ item.snapshot_name }}' - PVC '{{ item.pvc_name }}' does not exist in namespace '{{ pvc_namespace | default('') }}'"
+  loop: "{{ volume_snapshot_specs | default([]) }}"
+  when:
+    - pvc_namespace is defined and pvc_namespace != ""
+    - existing_pvcs is defined
+    - existing_pvcs.resources is defined
+    - item.snapshot_name is defined and item.snapshot_name != ""
+    - item.pvc_name is defined and item.pvc_name != ""
+    - item.pvc_name not in (existing_pvcs.resources | map(attribute='metadata.name') | list)
+  tags:
+    - k8s_create_volume_snapshots

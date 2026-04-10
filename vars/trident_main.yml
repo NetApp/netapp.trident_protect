@@ -1,0 +1,86 @@
+---
+# Variable file for Trident related tasks
+# Used in roles/trident/create_k8s_objects/tasks/main.yml
+# Used in roles/trident/delete_k8s_objects/tasks/main.yml
+
+configure_nfs: true               # Set to true to create NFS storage class and PVCs
+
+configure_nfs_flexgroup: true     # Set to true to create NFS FlexGroup storage class and PVCs
+
+configure_iscsi: true             # Set to true to create iSCSI storage class and PVCs
+
+configure_fcp: true               # Set to true to create FCP storage class and PVCs
+
+configure_nvme_tcp: true          # Set to true to create NVMe/TCP storage class and PVCs
+
+# Note: Ensure that the backendType parameter in the storage class definitions in roles/trident/create_k8s_objects/tasks/main.yml matches your Trident backend type.
+
+# Project/Namespace where PVCs will be provisioned
+pvc_namespace: test-project
+
+# NFS Storage class and PVC specifications
+nfs_specs:
+  sc_name: ontap-nfs-sc        # Name of the storage class to be created
+  sc_reclaim_policy: Delete    # Reclaim policy for the storage class. Options: Retain and Delete
+  sc_volume_binding_mode: Immediate     # Volume binding mode. Options: Immediate or WaitForFirstConsumer. Controls when the PV is bound to the PVC. Use WaitForFirstConsumer to delay binding until a Pod is scheduled.
+  nfs_version: "4.1"           # NFS version to be used in mount options. Options: "3", "4.0", "4.1", "4.2"
+  pvc_info:                    # PVC size specifications can be in Ki, Mi, Gi, Ti, Pi, Ei
+    - { pvc_name: test-nfs-pvc-1, pvc_size: 100Gi, access_modes: [ReadWriteOnce] }   # Access modes for the PVC. Options: ReadWriteOnce (RWO), ReadOnlyMany (ROX), ReadWriteMany (RWX), and ReadWriteOncePod (RWOP).
+    - { pvc_name: test-nfs-pvc-2, pvc_size: 200Gi, access_modes: [ReadWriteMany] }   # Filesystem is the only supported and default volume mode for NFS.
+
+# NFS FlexGroup Storage class and PVC specifications
+nfs_flexgroup_specs:
+  sc_name: ontap-nfs-flexgroup-sc    # Name of the storage class to be created
+  sc_reclaim_policy: Delete          # Reclaim policy for the storage class. Options: Retain and Delete.
+  sc_volume_binding_mode: Immediate     # Volume binding mode. Options: Immediate or WaitForFirstConsumer.
+  nfs_version: "4.1"                               # NFS version to be used in mount options. Options: "3", "4.0", "4.1", "4.2".
+  pvc_info:            # Minimum size for NFS FlexGroup PVC is 800Gi
+    - { pvc_name: test-nfs-flexgroup-pvc-1, pvc_size: 800Gi, access_modes: [ReadWriteOnce] }   # Access modes for the PVC. Options: ReadWriteOnce (RWO), ReadOnlyMany (ROX), ReadWriteMany (RWX), and ReadWriteOncePod (RWOP).
+    - { pvc_name: test-nfs-flexgroup-pvc-2, pvc_size: 1000Gi, access_modes: [ReadWriteMany] }   # Filesystem is the only supported and default volume mode for NFS.
+
+# iSCSI Storage class and PVC specifications
+iscsi_specs:
+  sc_name: ontap-iscsi-sc     # Name of the storage class to be created
+  sc_reclaim_policy: Delete   # Reclaim policy for the storage class. Options: Retain and Delete.
+  sc_volume_binding_mode: Immediate     # Volume binding mode. Options: Immediate or WaitForFirstConsumer.
+  pvc_info:                             # PVC size specifications can be in Ki, Mi, Gi, Ti, Pi, Ei
+    - { pvc_name: test-iscsi-pvc, pvc_size: 100Gi, access_modes: [ReadWriteOnce], volume_mode: Filesystem }    # Access modes for the PVC. Options: ReadWriteOnce (RWO), ReadOnlyMany (ROX), ReadWriteMany (RWX), and ReadWriteOncePod (RWOP).
+    - { pvc_name: test-iscsi-pvc-block, pvc_size: 200Gi, access_modes: [ReadWriteMany], volume_mode: Block }   # Volume mode can be Filesystem or Block. Default is Filesystem. But RWX is not supported/allowed with FileSystem volume mode for iSCSI.
+
+# NVMe/TCP Storage class and PVC specifications
+nvme_tcp_specs:
+  sc_name: ontap-nvme-tcp-sc     # Name of the storage class to be created
+  sc_reclaim_policy: Delete      # Reclaim policy for the storage class. Options: Retain and Delete.
+  sc_volume_binding_mode: Immediate     # Volume binding mode. Options: Immediate or WaitForFirstConsumer.
+  pvc_info:                            # PVC size specifications can be in Ki, Mi, Gi, Ti, Pi, Ei
+    - { pvc_name: test-nvme-tcp-pvc, pvc_size: 100Gi, access_modes: [ReadWriteOnce], volume_mode: Filesystem }    # Access modes for the PVC. Options: ReadWriteOnce (RWO), ReadOnlyMany (ROX), ReadWriteMany (RWX), and ReadWriteOncePod (RWOP).
+    - { pvc_name: test-nvme-tcp-pvc-block, pvc_size: 200Gi, access_modes: [ReadWriteMany], volume_mode: Block }   # Volume mode can be Filesystem or Block. Default is Filesystem. But RWX is not supported with FileSystem volume mode for NVMe/TCP.
+
+# FCP Storage class and PVC specifications
+fcp_specs:
+  sc_name: ontap-fcp-sc          # Name of the storage class to be created
+  sc_reclaim_policy: Delete      # Reclaim policy for the storage class. Options: Retain and Delete.
+  sc_volume_binding_mode: Immediate     # Volume binding mode. Options: Immediate or WaitForFirstConsumer.
+  pvc_info:                           # PVC size specifications can be in Ki, Mi, Gi, Ti, Pi, Ei
+    - { pvc_name: test-fcp-pvc, pvc_size: 100Gi, access_modes: [ReadWriteOnce], volume_mode: Filesystem }    # Access modes for the PVC. Options: ReadWriteOnce (RWO), ReadOnlyMany (ROX), ReadWriteMany (RWX), and ReadWriteOncePod (RWOP).
+    - { pvc_name: test-fcp-pvc-block, pvc_size: 200Gi, access_modes: [ReadWriteMany], volume_mode: Block }   # Volume mode can be Filesystem or Block. Default is Filesystem. But RWX is not supported with FileSystem volume mode for FCP.
+
+# Default storage class
+default_sc: ontap-nfs-sc    # Set the default storage class for the cluster. This should match one of the storage class names defined above.
+
+# VolumeSnapshotClass specifications
+# This will be used to create VolumeSnapshots from the PVCs created above.
+# Note: VolumeSnapshotClass is a cluster-scoped resource and is not namespaced.
+vol_snapshot_class_specs:
+  name: test-ontap-snapshot-class   # Name of the VolumeSnapshotClass to be created
+  deletion_policy: Delete           # Options: Retain or Delete
+
+# VolumeSnapshot specifications
+# Define the VolumeSnapshots to be created from the PVCs above.
+volume_snapshot_specs:
+  - { snapshot_name: nfs-pvc-snapshot-1, pvc_name: test-nfs-pvc-1 }                        # Snapshot from NFS PVC
+  - { snapshot_name: nfs-flexgroup-pvc-snapshot-1, pvc_name: test-nfs-flexgroup-pvc-1 }    # Snapshot from NFS FlexGroup PVC
+  - { snapshot_name: iscsi-pvc-snapshot-1, pvc_name: test-iscsi-pvc }                      # Snapshot from iSCSI PVC
+  - { snapshot_name: nvme-tcp-pvc-snapshot-1, pvc_name: test-nvme-tcp-pvc }                # Snapshot from NVMe/TCP PVC
+  - { snapshot_name: fcp-pvc-snapshot-1, pvc_name: test-fcp-pvc }                          # Snapshot from FCP PVC
+# Ensure that the VolumeSnapshotClass defined above is compatible with the backend storage and Trident configuration.

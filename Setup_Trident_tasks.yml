@@ -1,0 +1,34 @@
+---
+# Execute the below Trident role to configure Kubernetes objects using NetApp Trident.
+- name: Configure Kubernetes objects using NetApp Trident
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/trident_main.yml
+  connection: local
+  roles:
+  - { role: trident/create_k8s_objects, tags: [ 'create_k8s_objects' ] }
+  tags:
+  - trident_setup_tasks
+
+# Note: To execute this playbook, run the following command from the directory where this file is located:
+# ansible-playbook Setup_Trident_tasks.yml -e @vars/trident_main.yml -t trident_setup_tasks
+# Ensure that the vars/trident_main.yml file is updated with the desired configuration before executing the playbook.
+
+# To delete the created Kubernetes objects, execute the below playbook:
+- name: Delete Kubernetes objects using NetApp Trident
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - vars/trident_main.yml
+  connection: local
+  roles:
+  - { role: trident/delete_k8s_objects, tags: [ 'delete_k8s_objects' ] }
+  tags:
+  - trident_cleanup_tasks
+
+# Note: To execute this playbook, run the following command from the directory where this file is located:
+# ansible-playbook Setup_Trident_tasks.yml -e @vars/trident_main.yml -t trident_cleanup_tasks
+# Ensure that the vars/trident_main.yml file is updated with the desired configuration before executing the playbook.
+# Warning: Deleting the Kubernetes objects will remove the PVCs and StorageClasses created by the create_k8s_objects role.
+# Make sure to back up any important data before running the delete playbook.
