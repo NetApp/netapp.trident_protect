@@ -1,0 +1,358 @@
+---
+# Ansible tasks for executing failover of replicated VMs to the destination OpenShift cluster using Trident protect.
+# This role should be executed AFTER the dr_amr_config role has been run and the AppMirrorRelationship (AMR) is in Established state with successful replication.
+# This role assumes that there is disaster on the source cluster and the replicated VMs need to be failed over to the destination cluster.
+# 
+# IMPORTANT: During disaster simulation, this role will:
+# 1. Delete the SnapshotSchedule on the source cluster to prevent empty snapshots from being created after VM deletion
+# 2. Stop and delete source VMs to simulate disaster
+# 3. Promote the AMR on the destination cluster to enable failover
+#
+# If the snapshot schedule continues running after VM deletion, it will create snapshots with no VMs,
+# and the AMR will use the latest (empty) snapshot, resulting in no VMs being restored on the destination cluster.
+
+# Disaster simulation - This is a placeholder task to simulate disaster on the source cluster. In a real scenario, this would be an actual disaster event (e.g., source VMs deleted).
+# Step 1: Delete/suspend snapshot schedules to prevent empty snapshots from being created after VM deletion
+- name: Check if Schedule exists for source VMs before disaster simulation
+  kubernetes.core.k8s_info:
+    kind: Schedule
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ src_snapshot_schedule_specs.name }}"
+    namespace: "{{ src_vm_namespace }}"
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: src_snapshot_schedule_check
+  changed_when: false
+  when:
+    - simulate_disaster | bool
+    - src_snapshot_schedule_specs is defined
+    - src_snapshot_schedule_specs.name is defined
+  tags:
+    - disaster_simulation
+    - delete_snapshot_schedule
+
+- name: Display message when Schedule is not present for source application
+  ansible.builtin.debug:
+    msg: "There is no Schedule for application '{{ src_application_name }}' in namespace '{{ src_vm_namespace }}'. Skipping snapshot schedule deletion."
+  when:
+    - simulate_disaster | bool
+    - src_snapshot_schedule_check is defined
+    - not src_snapshot_schedule_check.api_found | default(true)
+  tags:
+    - disaster_simulation
+    - delete_snapshot_schedule
+
+- name: Delete Schedule to prevent empty snapshots after VM deletion
+  kubernetes.core.k8s:
+    kind: Schedule
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ src_snapshot_schedule_specs.name }}"
+    namespace: "{{ src_vm_namespace }}"
+    state: absent
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  when:
+    - simulate_disaster | bool
+    - src_snapshot_schedule_check is defined
+    - src_snapshot_schedule_check.api_found | default(false)
+    - src_snapshot_schedule_check.resources is defined
+    - src_snapshot_schedule_check.resources | length > 0
+  tags:
+    - disaster_simulation
+    - delete_snapshot_schedule
+
+- name: Display message about snapshot schedule deletion
+  ansible.builtin.debug:
+    msg: "Deleted Schedule '{{ src_snapshot_schedule_specs.name }}' to prevent empty snapshots after disaster"
+  when:
+    - simulate_disaster | bool
+    - src_snapshot_schedule_check is defined
+    - src_snapshot_schedule_check.api_found | default(false)
+    - src_snapshot_schedule_check.resources is defined
+    - src_snapshot_schedule_check.resources | length > 0
+  tags:
+    - disaster_simulation
+    - delete_snapshot_schedule
+
+# Step 2: Identify VMs to delete
+- name: Get list of VMs in source namespace {{ src_vm_namespace }} with label {{ src_vm_label }} before failover
+  kubernetes.core.k8s_info:
+    kind: VirtualMachine
+    api_version: kubevirt.io/v1
+    namespace: "{{ src_vm_namespace }}"
+    label_selectors:
+      - "category={{ src_vm_label }}"
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: src_vms_before_failover
+  changed_when: false
+  when: simulate_disaster | bool
+  tags:
+    - disaster_simulation
+
+# Step 3: Stop running VMs gracefully before deletion
+- name: Stop all running VMs in source namespace {{ src_vm_namespace }} with label {{ src_vm_label }} to simulate disaster
+  kubernetes.core.k8s:
+    kind: VirtualMachine
+    api_version: kubevirt.io/v1
+    namespace: "{{ src_vm_namespace }}"
+    name: "{{ item.metadata.name }}"
+    state: patched
+    merge_type: merge
+    definition:
+      spec:
+        runStrategy: Halted
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  loop: "{{ src_vms_before_failover.resources }}"
+  when:
+    - simulate_disaster | bool
+    - src_vms_before_failover is defined
+    - src_vms_before_failover.resources is defined
+    - src_vms_before_failover.resources | length > 0
+  tags:
+    - disaster_simulation
+
+- name: Wait for VMs to stop gracefully
+  kubernetes.core.k8s_info:
+    kind: VirtualMachine
+    api_version: kubevirt.io/v1
+    namespace: "{{ src_vm_namespace }}"
+    name: "{{ item.metadata.name }}"
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  loop: "{{ src_vms_before_failover.resources }}"
+  register: vm_stop_status
+  until: >
+    vm_stop_status.resources | length > 0 and
+    vm_stop_status.resources[0].spec.runStrategy is defined and
+    vm_stop_status.resources[0].spec.runStrategy == "Halted" and
+    (vm_stop_status.resources[0].status.printableStatus is not defined or
+     vm_stop_status.resources[0].status.printableStatus in ['Stopped', 'Terminating'])
+  retries: 30
+  delay: 10
+  changed_when: false
+  when:
+    - simulate_disaster | bool
+    - src_vms_before_failover is defined
+    - src_vms_before_failover.resources is defined
+    - src_vms_before_failover.resources | length > 0
+  tags:
+    - disaster_simulation
+
+# Step 4: Delete VMs to complete disaster simulation
+- name: Delete all VMs in source namespace {{ src_vm_namespace }} with label {{ src_vm_label }} to simulate disaster
+  kubernetes.core.k8s:
+    kind: VirtualMachine
+    api_version: kubevirt.io/v1
+    namespace: "{{ src_vm_namespace }}"
+    name: "{{ item.metadata.name }}"
+    state: absent
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  loop: "{{ src_vms_before_failover.resources }}"
+  when:
+    - simulate_disaster | bool
+    - src_vms_before_failover is defined
+    - src_vms_before_failover.resources is defined
+    - src_vms_before_failover.resources | length > 0
+  tags:
+    - disaster_simulation
+
+- name: Wait for VMs to be deleted and verify deletion
+  kubernetes.core.k8s_info:
+    kind: VirtualMachine
+    api_version: kubevirt.io/v1
+    namespace: "{{ src_vm_namespace }}"
+    label_selectors:
+      - "category={{ src_vm_label }}"
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: src_vms_after_disaster
+  until: src_vms_after_disaster.resources | length == 0
+  retries: 30
+  delay: 10
+  changed_when: false
+  when: simulate_disaster | bool
+  tags:
+    - disaster_simulation
+
+# Step 5: Summary of disaster simulation
+- name: Display message when no VMs found for disaster simulation
+  ansible.builtin.debug:
+    msg: "WARNING: No VMs found in namespace '{{ src_vm_namespace }}' with label '{{ src_vm_label }}'. Disaster simulation skipped. Verify that VMs exist and have the correct label."
+  when:
+    - simulate_disaster | bool
+    - src_vms_before_failover is defined
+    - src_vms_before_failover.resources | length == 0
+  tags:
+    - disaster_simulation
+
+- name: Display message confirming disaster simulation on source cluster (with snapshot schedule deletion)
+  ansible.builtin.debug:
+    msg: 
+      - "Disaster simulation completed on source cluster:"
+      - "  - Deleted Schedule '{{ src_snapshot_schedule_specs.name }}'"
+      - "  - Stopped and deleted {{ src_vms_before_failover.resources | length }} VM(s) in namespace '{{ src_vm_namespace }}'"
+  when:
+    - simulate_disaster | bool
+    - src_vms_before_failover is defined
+    - src_vms_before_failover.resources | length > 0
+    - src_snapshot_schedule_check is defined
+    - src_snapshot_schedule_check.api_found | default(false)
+    - src_snapshot_schedule_check.resources | length > 0
+  tags:
+    - disaster_simulation
+
+- name: Display message confirming disaster simulation on source cluster (without snapshot schedule)
+  ansible.builtin.debug:
+    msg: 
+      - "Disaster simulation completed on source cluster:"
+      - "  - Stopped and deleted {{ src_vms_before_failover.resources | length }} VM(s) in namespace '{{ src_vm_namespace }}'"
+  when:
+    - simulate_disaster | bool
+    - src_vms_before_failover is defined
+    - src_vms_before_failover.resources | length > 0
+    - (src_snapshot_schedule_check is not defined or not src_snapshot_schedule_check.api_found | default(false) or src_snapshot_schedule_check.resources | length == 0)
+  tags:
+    - disaster_simulation
+
+# Fetch the source application UID from the existing AMR on the destination cluster
+# This is critical because in a real disaster scenario, the source cluster may be unavailable
+- name: Get existing AppMirrorRelationship to retrieve source application UID
+  kubernetes.core.k8s_info:
+    kind: AppMirrorRelationship
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ appmirrorrelationship_specs.name }}"
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: existing_amr_info
+  changed_when: false
+  failed_when: existing_amr_info.resources | length == 0
+  tags:
+    - dr_failover_promote
+
+# Extract the source application UID from the existing AMR
+- name: Set source application UID from existing AMR
+  ansible.builtin.set_fact:
+    src_application_uid: "{{ existing_amr_info.resources[0].spec.sourceApplicationUID }}"
+  tags:
+    - dr_failover_promote
+
+# Failover execution - This task will fail over the replicated VMs to the destination OpenShift cluster.
+# This procedure stops the replication relationship (AMR) and brings the VMs online on the destination cluster. The VMs will be in the same state as they were on the source cluster at the time of the last successful replication (last snapshot).
+- name: Fail over replicated VMs to the destination OpenShift cluster by promoting the AppMirrorRelationship (AMR)
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+    wait: true
+    definition:
+      apiVersion: protect.trident.netapp.io/v1
+      kind: AppMirrorRelationship
+      metadata:
+        name: "{{ appmirrorrelationship_specs.name }}"
+        namespace: "{{ dst_vm_namespace }}"
+      spec:
+        desiredState: "Promoted"
+        destinationAppVaultRef: "{{ dst_appvault_name }}"
+        sourceAppVaultRef: "{{ src_appvault_name }}"
+        sourceApplicationName: "{{ src_application_name }}"
+        sourceApplicationUID: "{{ src_application_uid }}"
+        storageClassName: "{{ appmirrorrelationship_specs.storage_class }}"
+        namespaceMapping:
+          - destination: "{{ dst_vm_namespace }}"
+            source: "{{ src_vm_namespace }}"
+        recurrenceRule: |-
+          DTSTART:{{ appmirrorrelationship_specs.recurrence_rule.dtstart }}
+          RRULE:{{ appmirrorrelationship_specs.recurrence_rule.rrule }}
+  tags:
+    - dr_failover_promote
+
+# View the AppMirrorRelationship details on the destination OpenShift cluster
+- name: Get AppMirrorRelationship details to verify it has been promoted
+  kubernetes.core.k8s_info:
+    kind: AppMirrorRelationship
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ appmirrorrelationship_specs.name }}"
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: dst_appmirrorrelationship_info
+  changed_when: false
+  failed_when: dst_appmirrorrelationship_info.resources | length == 0
+  tags:
+    - dr_failover_promote
+
+# Display the AppMirrorRelationship details promoted on the destination OpenShift cluster
+- name: Display AppMirrorRelationship information promoted on the destination OpenShift cluster
+  ansible.builtin.debug:
+    var: dst_appmirrorrelationship_info.resources[0]
+  tags:
+    - dr_failover_promote
+
+# Wait for the AppMirrorRelationship to reach the Promoted state
+- name: Wait for AppMirrorRelationship {{ appmirrorrelationship_specs.name }} to reach Promoted state
+  kubernetes.core.k8s_info:
+    kind: AppMirrorRelationship
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ appmirrorrelationship_specs.name }}"
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: dst_amr_state
+  until: >
+    dst_amr_state.resources | length > 0 and
+    dst_amr_state.resources[0].status.state is defined and
+    dst_amr_state.resources[0].status.state == "Promoted"
+  retries: 60
+  delay: 30
+  changed_when: false
+  tags:
+    - dr_failover_promote
+
+# Display the AppMirrorRelationship state after being promoted
+- name: Display AppMirrorRelationship state after being promoted on the destination cluster
+  ansible.builtin.debug:
+    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ dst_amr_state.resources[0].status.state }}' state"
+  when: dst_amr_state.resources | length > 0 and dst_amr_state.resources[0].status.state is defined
+  tags:
+    - dr_failover_promote
+
+# Verify that VMs are actually restored on the destination cluster after AMR promotion
+- name: Wait for VMs to be restored on destination cluster after failover
+  kubernetes.core.k8s_info:
+    kind: VirtualMachine
+    api_version: kubevirt.io/v1
+    namespace: "{{ dst_vm_namespace }}"
+    label_selectors:
+      - "category={{ src_vm_label }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: dst_vms_after_failover
+  until: dst_vms_after_failover.resources | length > 0
+  retries: 60
+  delay: 10
+  changed_when: false
+  tags:
+    - dr_failover_promote
+
+- name: Display VMs restored on destination cluster
+  ansible.builtin.debug:
+    msg: "Successfully restored {{ dst_vms_after_failover.resources | length }} VM(s) on destination cluster in namespace '{{ dst_vm_namespace }}'"
+  when: dst_vms_after_failover.resources | length > 0
+  tags:
+    - dr_failover_promote

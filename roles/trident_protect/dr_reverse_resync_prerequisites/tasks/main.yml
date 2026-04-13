@@ -1,0 +1,371 @@
+---
+# Ansible tasks for setting up prerequisites to reverse resync a failed over replication relationship using Trident Protect.
+# This role should be executed AFTER the dr_failover role has been executed and the failed over VMs are running successfully on the destination cluster.
+
+# Pre-condition check: Verify that failed over VMs are running on the destination cluster before proceeding.
+- name: Verify failed over VMs are running on the destination cluster before proceeding with reverse resync prerequisites
+  kubernetes.core.k8s_info:
+    kind: VirtualMachine
+    api_version: kubevirt.io/v1
+    namespace: "{{ dst_vm_namespace }}"
+    label_selectors:
+      - "category={{ src_vm_label }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: dst_vms_running_check
+  changed_when: false
+  failed_when: dst_vms_running_check.resources | length == 0
+  tags:
+    - verify_dst_vms_running
+
+- name: Display failed over VMs running on the destination cluster
+  ansible.builtin.debug:
+    msg: "Confirmed {{ dst_vms_running_check.resources | length }} VM(s) present on destination cluster in namespace '{{ dst_vm_namespace }}'. Proceeding with reverse resync prerequisites."
+  tags:
+    - verify_dst_vms_running
+
+# Delete the Snapshot schedule if any running on the original primary (source cluster) before executing the reverse resync prerequisites tasks. This is required to avoid snapshot creation during reverse resync which can cause reverse resync failure.
+- name: Delete Snapshot schedule on the original source cluster if any before executing the reverse resync prerequisites tasks
+  kubernetes.core.k8s:
+    kind: Schedule
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ src_snapshot_schedule_specs.name }}"
+    namespace: "{{ src_vm_namespace }}"
+    state: absent
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  when:
+    - src_scheduled_snapshot | default(false) | bool
+    - src_snapshot_schedule_specs is defined
+    - src_snapshot_schedule_specs.name is defined
+  tags:
+    - delete_src_snapshot_schedule
+
+# On the original destination cluster, delete the AppMirrorRelationship CR (which is in Promoted state). This causes the destination to become the source.
+- name: Delete the AppMirrorRelationship (AMR) on the original destination cluster to prepare for reverse resync
+  kubernetes.core.k8s:
+    state: absent
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: protect.trident.netapp.io/v1
+      kind: AppMirrorRelationship
+      metadata:
+        name: "{{ appmirrorrelationship_specs.name }}"
+        namespace: "{{ dst_vm_namespace }}"
+  tags:
+    - delete_dst_amr
+
+# Wait for the AMR to be fully deleted before proceeding to reverse resync config.
+- name: Wait for AppMirrorRelationship to be fully deleted on the destination cluster
+  kubernetes.core.k8s_info:
+    kind: AppMirrorRelationship
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ appmirrorrelationship_specs.name }}"
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: dst_amr_delete_check
+  until: dst_amr_delete_check.resources | length == 0
+  retries: 30
+  delay: 10
+  changed_when: false
+  tags:
+    - delete_dst_amr
+
+- name: Display message confirming AMR deletion on destination cluster
+  ansible.builtin.debug:
+    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' has been fully deleted from namespace '{{ dst_vm_namespace }}' on the destination cluster. Ready for reverse resync."
+  tags:
+    - delete_dst_amr
+
+# Preflight validation - Validate variables for configuration on new destination (original source) cluster such as secrets and AppVaults
+- name: Validate variables for configuration on new destination (original source) cluster such as secrets and AppVaults
+  ansible.builtin.assert:
+    that:
+      - src_oc_api_url is defined and src_oc_api_url | default('') | trim | length > 0
+      - src_oc_api_token is defined and src_oc_api_token | default('') | trim | length > 0
+      - dst_ontap_s3_specs is defined
+      - dst_ontap_s3_specs is mapping
+      - dst_ontap_s3_specs.secret_name is defined and dst_ontap_s3_specs.secret_name | default('') | trim | length > 0
+      - dst_ontap_s3_specs.access_key is defined and dst_ontap_s3_specs.access_key | default('') | trim | length > 0
+      - dst_ontap_s3_specs.secret_key is defined and dst_ontap_s3_specs.secret_key | default('') | trim | length > 0
+      - dst_ontap_s3_specs.s3_bucket_name is defined and dst_ontap_s3_specs.s3_bucket_name | default('') | trim | length > 0
+      - dst_ontap_s3_specs.s3_endpoint is defined and dst_ontap_s3_specs.s3_endpoint | default('') | trim | length > 0
+      - dst_appvault_name is defined and dst_appvault_name | default('') | trim | length > 0
+    fail_msg: "Variables for configuration on new destination (original source) cluster are not properly defined. Check vars/trident_protect_main.yml"
+    success_msg: "Variables validated successfully for configuration on new destination (original source) cluster such as secrets and AppVaults"
+  tags:
+    - new_dst_preflight
+    - new_dst_src_ontap_s3_secret_create
+    - new_dst_src_appvault_create
+
+# Verify trident-protect namespace exists on the new destination (original source) cluster
+- name: Verify trident-protect namespace exists on the new destination (original source) OpenShift cluster
+  kubernetes.core.k8s_info:
+    kind: Namespace
+    api_version: v1
+    name: trident-protect
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: new_dst_tp_ns_check
+  failed_when: new_dst_tp_ns_check.resources | length == 0
+  changed_when: false
+  tags:
+    - new_dst_preflight
+    - new_dst_src_ontap_s3_secret_create
+    - new_dst_src_appvault_create
+
+# Create Kubernetes Secret to store source ONTAP S3 credentials on the new destination (original source cluster) OpenShift cluster
+- name: Create Kubernetes Secret to store source ONTAP S3 credentials on the new destination (original source cluster) OpenShift cluster
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ dst_ontap_s3_specs.secret_name }}"
+        namespace: trident-protect
+      type: Opaque
+      stringData:
+        accessKeyID: "{{ dst_ontap_s3_specs.access_key }}"
+        secretAccessKey: "{{ dst_ontap_s3_specs.secret_key }}"
+  no_log: true
+  tags:
+    - new_dst_src_ontap_s3_secret_create
+
+# Verify the creation of secret to store source ONTAP S3 credentials on the new destination (original source) cluster
+- name: Verify the creation of secret to store source ONTAP S3 credentials on the new destination (original source) cluster
+  kubernetes.core.k8s_info:
+    kind: Secret
+    api_version: v1
+    name: "{{ dst_ontap_s3_specs.secret_name }}"
+    namespace: trident-protect
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: new_dst_src_ontap_s3_secret_info
+  failed_when: new_dst_src_ontap_s3_secret_info.resources | length == 0
+  changed_when: false
+  tags:
+    - new_dst_src_ontap_s3_secret_verify
+
+# On the new destination (original source) OpenShift cluster, create a source application AppVault CR
+- name: Create source application AppVault CR on the new destination (original source) OpenShift cluster
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: protect.trident.netapp.io/v1
+      kind: AppVault
+      metadata:
+        name: "{{ dst_appvault_name }}"
+        namespace: trident-protect
+      spec:
+        providerType: "OntapS3"
+        providerConfig:
+          s3:
+            bucketName: "{{ dst_ontap_s3_specs.s3_bucket_name }}"
+            endpoint: "{{ dst_ontap_s3_specs.s3_endpoint }}"    # Provide LIF for S3 access
+            secure: "false"
+            skipCertValidation: "true"
+        providerCredentials:
+          accessKeyID:
+            valueFromSecret:
+              name: "{{ dst_ontap_s3_specs.secret_name }}"
+              key: accessKeyID
+          secretAccessKey:
+            valueFromSecret:
+              name: "{{ dst_ontap_s3_specs.secret_name }}"
+              key: secretAccessKey
+  tags:
+    - new_dst_src_appvault_create
+
+# View the source application AppVault details on the new destination (original source) OpenShift cluster
+- name: Get source application AppVault details on the new destination (original source) OpenShift cluster
+  kubernetes.core.k8s_info:
+    kind: AppVault
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ dst_appvault_name }}"
+    namespace: trident-protect
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: new_dst_src_appvault_info
+  failed_when: new_dst_src_appvault_info.resources | length == 0
+  changed_when: false
+  tags:
+    - new_dst_src_appvault_verify
+
+# Display the source application AppVault details created on the new destination (original source) OpenShift cluster
+- name: Display source application AppVault information created in trident-protect namespace on the new destination (original source) OpenShift cluster
+  ansible.builtin.debug:
+    var: new_dst_src_appvault_info.resources[0]
+  when: new_dst_src_appvault_info.resources | length > 0
+  tags:
+    - new_dst_src_appvault_verify
+
+# Validate that src_scheduled_snapshot and src_on_demand_snapshot are mutually exclusive
+- name: Validate that src_scheduled_snapshot and src_on_demand_snapshot are mutually exclusive
+  ansible.builtin.assert:
+    that:
+      - not (src_scheduled_snapshot | default(false) | bool and src_on_demand_snapshot | default(false) | bool)
+    fail_msg: "src_scheduled_snapshot and src_on_demand_snapshot cannot both be true. Set only one to true in vars/trident_protect_main.yml"
+    success_msg: "Snapshot mode validated: only one of src_scheduled_snapshot or src_on_demand_snapshot is enabled"
+  tags:
+    - new_src_preflight
+
+# Preflight validation - Validate variables for snapshot schedule configuration on the new source (original destination) cluster before creating the snapshot schedule.
+- name: Validate variables for snapshot schedule configuration on the new source (original destination) cluster.
+  ansible.builtin.assert:
+    that:
+      - src_snapshot_schedule_specs is defined
+      - src_snapshot_schedule_specs is mapping
+      - dst_vm_namespace is defined and dst_vm_namespace | default('') | trim | length > 0
+      - dst_appvault_name is defined and dst_appvault_name | default('') | trim | length > 0
+      - src_application_name is defined and src_application_name | default('') | trim | length > 0
+      - src_snapshot_schedule_specs.name is defined and src_snapshot_schedule_specs.name | default('') | trim | length > 0
+      - src_snapshot_schedule_specs.snapshot_reclaim_policy is defined and src_snapshot_schedule_specs.snapshot_reclaim_policy | default('') | trim | length > 0
+      - src_snapshot_schedule_specs.retention_count is defined and src_snapshot_schedule_specs.retention_count | default('') | trim | length > 0
+      - src_snapshot_schedule_specs.recurrence_rule is defined and src_snapshot_schedule_specs.recurrence_rule is mapping
+      - src_snapshot_schedule_specs.recurrence_rule.dtstart is defined and src_snapshot_schedule_specs.recurrence_rule.dtstart | default('') | trim | length > 0
+      - src_snapshot_schedule_specs.recurrence_rule.rrule is defined and src_snapshot_schedule_specs.recurrence_rule.rrule | default('') | trim | length > 0
+    fail_msg: "Variables for snapshot schedule configuration are not properly defined. Check vars/trident_protect_main.yml"
+    success_msg: "Variables for snapshot schedule configuration validated successfully"
+  when: src_scheduled_snapshot | default(false) | bool
+  tags:
+    - new_src_preflight
+    - new_src_snapshot_schedule_create
+
+# On the new source OpenShift cluster, take a snapshot of the source application. This snapshot is used as the basis for replication on the destination cluster.
+- name: Create a snapshot schedule for the source application {{ src_application_name }} on the new source OpenShift cluster
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: protect.trident.netapp.io/v1
+      kind: Schedule
+      metadata:
+        name: "{{ src_snapshot_schedule_specs.name }}"
+        namespace: "{{ dst_vm_namespace }}"
+      spec:
+        appVaultRef: "{{ dst_appvault_name }}"
+        applicationRef: "{{ src_application_name }}"
+        snapshotReclaimPolicy: "{{ src_snapshot_schedule_specs.snapshot_reclaim_policy }}"
+        backupRetention: "0"
+        enabled: true
+        granularity: "Custom"
+        snapshotRetention: "{{ src_snapshot_schedule_specs.retention_count | default('') | string }}"
+        recurrenceRule: |-
+          DTSTART:{{ src_snapshot_schedule_specs.recurrence_rule.dtstart }}
+          RRULE:{{ src_snapshot_schedule_specs.recurrence_rule.rrule }}
+  when: src_scheduled_snapshot | default(false) | bool
+  tags:
+    - new_src_snapshot_schedule_create
+
+# Verify the snapshot schedule creation
+- name: Get source snapshot schedule details to verify creation
+  kubernetes.core.k8s_info:
+    kind: Schedule
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ src_snapshot_schedule_specs.name }}"
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: new_src_snapshot_schedule_info
+  changed_when: false
+  when: src_scheduled_snapshot | default(false) | bool
+  tags:
+    - new_src_snapshot_schedule_verify
+
+- name: Display source snapshot schedule details created in {{ dst_vm_namespace }} namespace
+  ansible.builtin.debug:
+    var: new_src_snapshot_schedule_info.resources[0]
+  when:
+    - src_scheduled_snapshot | default(false) | bool
+    - new_src_snapshot_schedule_info.resources | length > 0
+  tags:
+    - new_src_snapshot_schedule_verify
+
+# Preflight validation - Validate variables for on-demand snapshot configuration on the new source (original destination) cluster before creating the on-demand snapshot.
+- name: Validate variables for on-demand snapshot configuration on the new source (original destination) cluster.
+  ansible.builtin.assert:
+    that:
+      - src_on_demand_snapshot_specs is defined
+      - src_on_demand_snapshot_specs is mapping
+      - dst_vm_namespace is defined and dst_vm_namespace | default('') | trim | length > 0
+      - dst_appvault_name is defined and dst_appvault_name | default('') | trim | length > 0
+      - src_application_name is defined and src_application_name | default('') | trim | length > 0
+      - src_on_demand_snapshot_specs.name is defined and src_on_demand_snapshot_specs.name | default('') | trim | length > 0
+      - src_on_demand_snapshot_specs.reclaim_policy is defined and src_on_demand_snapshot_specs.reclaim_policy | default('') | trim | length > 0
+    fail_msg: "Variables for on-demand snapshot configuration are not properly defined. Check vars/trident_protect_main.yml"
+    success_msg: "Variables for on-demand snapshot configuration validated successfully"
+  when: src_on_demand_snapshot | default(false) | bool
+  tags:
+    - new_src_preflight
+    - new_src_on_demand_snapshot_create
+
+# On the new source OpenShift cluster, take an on-demand snapshot of the source application. This snapshot is used as the basis for replication on the destination cluster.
+- name: Create an on-demand snapshot for the source application {{ src_application_name }} on the new source OpenShift cluster
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+    definition:
+      apiVersion: protect.trident.netapp.io/v1
+      kind: Snapshot
+      metadata:
+        name: "{{ src_on_demand_snapshot_specs.name }}"
+        namespace: "{{ dst_vm_namespace }}"
+      spec:
+        appVaultRef: "{{ dst_appvault_name }}"
+        applicationRef: "{{ src_application_name }}"
+        reclaimPolicy: "{{ src_on_demand_snapshot_specs.reclaim_policy }}"
+  when: src_on_demand_snapshot | default(false) | bool
+  tags:
+    - new_src_on_demand_snapshot_create
+
+# Wait for on-demand snapshot to reach Completed state before proceeding
+- name: Wait for source on-demand snapshot to reach Completed state on the new source OpenShift cluster
+  kubernetes.core.k8s_info:
+    kind: Snapshot
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ src_on_demand_snapshot_specs.name }}"
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: new_src_on_demand_snapshot_info
+  until: >
+    new_src_on_demand_snapshot_info.resources | length > 0 and
+    new_src_on_demand_snapshot_info.resources[0].status.state is defined and
+    new_src_on_demand_snapshot_info.resources[0].status.state == "Completed"
+  retries: 30
+  delay: 10
+  changed_when: false
+  when: src_on_demand_snapshot | default(false) | bool
+  tags:
+    - new_src_on_demand_snapshot_verify
+
+- name: Display source on-demand snapshot details created in {{ dst_vm_namespace }} namespace
+  ansible.builtin.debug:
+    var: new_src_on_demand_snapshot_info.resources[0]
+  when:
+    - src_on_demand_snapshot | default(false) | bool
+    - new_src_on_demand_snapshot_info.resources | length > 0
+  tags:
+    - new_src_on_demand_snapshot_verify

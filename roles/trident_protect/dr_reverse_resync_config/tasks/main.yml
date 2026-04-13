@@ -1,0 +1,176 @@
+---
+# Ansible tasks to setup the replication relationship in reverse direction to re-establish replication from the new primary (destination cluster) back to the original primary (source cluster).
+# Set up a replication relationship by applying the CR files you originally used to set up the relationship to the opposite clusters.
+# This role should be executed AFTER the dr_reverse_resync_prerequisites role is executed successfully and the failed over VMs are running successfully on the destination cluster.
+
+# Note: The CR files you originally used to set up the replication relationship should be updated to reflect the new direction of replication before applying them in this step. 
+# For example, if you originally set up replication from Cluster A (source) to Cluster B (destination), you would have applied the CR files with Cluster A as source and Cluster B as destination. For the reverse resync, you would need to update those CR files to set Cluster B as the new source and Cluster A as the new destination, and then apply those updated CR files in this step.
+
+# Prerequisites check - Verify that snapshots exist on the new source cluster before proceeding with AMR creation
+- name: Check for available snapshots for application {{ src_application_name }} in source namespace {{ dst_vm_namespace }} on the new source (original destination) cluster
+  kubernetes.core.k8s_info:
+    kind: Snapshot
+    api_version: protect.trident.netapp.io/v1
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: src_snapshots_all
+  changed_when: false
+  tags:
+    - reverse_amr_preflight
+    - new_dst_amr_create
+
+- name: Filter snapshots for source application {{ src_application_name }}
+  ansible.builtin.set_fact:
+    src_snapshots_check:
+      resources: "{{ src_snapshots_all.resources | selectattr('spec.applicationRef', 'defined') | selectattr('spec.applicationRef', 'equalto', src_application_name) | selectattr('status.state', 'defined') | selectattr('status.state', 'equalto', 'Completed') | list }}"
+  tags:
+    - reverse_amr_preflight
+    - new_dst_amr_create
+
+- name: Verify at least one snapshot exists for application {{ src_application_name }}
+  ansible.builtin.assert:
+    that:
+      - src_snapshots_check.resources | length > 0
+    fail_msg: "No Completed snapshots found for application '{{ src_application_name }}' in namespace {{ dst_vm_namespace }}. Ensure snapshots are in Completed state before proceeding with AMR configuration."
+    success_msg: "Found {{ src_snapshots_check.resources | length }} Completed snapshot(s) for application '{{ src_application_name }}' in namespace {{ dst_vm_namespace }}. Proceeding with AMR configuration in reverse direction."
+  tags:
+    - reverse_amr_preflight
+    - new_dst_amr_create
+
+- name: Display snapshot details for verification
+  ansible.builtin.debug:
+    msg: "Snapshot: {{ item.metadata.name }} | State: {{ item.status.state | default('Unknown') }} | Created: {{ item.metadata.creationTimestamp | default('Unknown') }} | Completed: {{ item.status.completionTimestamp | default('In Progress') }} | AppVault: {{ item.status.appVaultRef | default('Unknown') }}"
+  loop: "{{ src_snapshots_check.resources }}"
+  when:
+    - src_snapshots_check is defined
+    - src_snapshots_check.resources is defined
+    - src_snapshots_check.resources | length > 0
+  tags:
+    - reverse_amr_preflight
+    - new_dst_amr_create
+
+# Preflight validation - Validate variables for AppMirrorRelationship (AMR) configuration on the new destination cluster (original source cluster).
+- name: Validate variables for AppMirrorRelationship (AMR) configuration on the new destination cluster (original source cluster) for reverse resync
+  ansible.builtin.assert:
+    that:
+      - appmirrorrelationship_specs is defined
+      - appmirrorrelationship_specs is mapping
+      - appmirrorrelationship_specs.name is defined and appmirrorrelationship_specs.name | default('') | trim | length > 0
+      - appmirrorrelationship_specs.storage_class is defined and appmirrorrelationship_specs.storage_class | default('') | trim | length > 0
+      - appmirrorrelationship_specs.recurrence_rule is defined and appmirrorrelationship_specs.recurrence_rule is mapping
+      - appmirrorrelationship_specs.recurrence_rule.dtstart is defined and appmirrorrelationship_specs.recurrence_rule.dtstart | default('') | trim | length > 0
+      - appmirrorrelationship_specs.recurrence_rule.rrule is defined and appmirrorrelationship_specs.recurrence_rule.rrule | default('') | trim | length > 0
+    fail_msg: "Variables for AppMirrorRelationship configuration are not properly defined. Check vars/trident_protect_main.yml"
+    success_msg: "Variables for AppMirrorRelationship configuration validated successfully"
+  tags:
+    - new_dst_amr_create
+    - reverse_amr_preflight
+
+# Fetch the source application UID from the source OpenShift cluster (original destination cluster)
+- name: Get source application UID from the source OpenShift cluster (original destination cluster) for AMR creation on the new destination cluster (original source cluster)
+  kubernetes.core.k8s_info:
+    kind: Application
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ src_application_name }}"
+    namespace: "{{ dst_vm_namespace }}"
+    host: "{{ dst_oc_api_url }}"
+    api_key: "{{ dst_oc_api_token }}"
+    validate_certs: false
+  register: new_src_application_info
+  changed_when: false
+  failed_when: new_src_application_info.resources | length == 0
+  tags:
+    - reverse_amr_preflight
+    - new_dst_amr_create
+
+# Extract the source application UID
+- name: Set source application UID as fact for AMR creation
+  ansible.builtin.set_fact:
+    src_application_uid: "{{ new_src_application_info.resources[0].metadata.uid }}"
+  tags:
+    - reverse_amr_preflight
+    - new_dst_amr_create
+
+# On the new destination OpenShift cluster (original source cluster), create an AppMirrorRelationship CR to replicate VMs from source to destination
+- name: Create an AppMirrorRelationship CR on new destination OpenShift cluster (original source cluster) to replicate VMs from source to destination
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+    wait: false
+    definition:
+      apiVersion: protect.trident.netapp.io/v1
+      kind: AppMirrorRelationship
+      metadata:
+        name: "{{ appmirrorrelationship_specs.name }}"
+        namespace: "{{ src_vm_namespace }}"
+      spec:
+        desiredState: "Established"
+        destinationAppVaultRef: "{{ src_appvault_name }}"
+        sourceAppVaultRef: "{{ dst_appvault_name }}"
+        sourceApplicationName: "{{ src_application_name }}"
+        sourceApplicationUID: "{{ src_application_uid }}"
+        storageClassName: "{{ appmirrorrelationship_specs.storage_class }}"
+        namespaceMapping:
+          - destination: "{{ src_vm_namespace }}"
+            source: "{{ dst_vm_namespace }}"
+        recurrenceRule: |-
+          DTSTART:{{ appmirrorrelationship_specs.recurrence_rule.dtstart }}
+          RRULE:{{ appmirrorrelationship_specs.recurrence_rule.rrule }}
+  tags:
+    - new_dst_amr_create
+
+# View the AppMirrorRelationship details on the new destination OpenShift cluster (original source cluster)
+- name: Get AppMirrorRelationship details to verify creation on the new destination OpenShift cluster (original source cluster)
+  kubernetes.core.k8s_info:
+    kind: AppMirrorRelationship
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ appmirrorrelationship_specs.name }}"
+    namespace: "{{ src_vm_namespace }}"
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: new_dst_appmirrorrelationship_info
+  changed_when: false
+  failed_when: new_dst_appmirrorrelationship_info.resources | length == 0
+  tags:
+    - new_dst_amr_create
+
+# Display the AppMirrorRelationship details created on the new destination OpenShift cluster (original source cluster)
+- name: Display AppMirrorRelationship information created in {{ src_vm_namespace }} namespace on the new destination OpenShift cluster (original source cluster)
+  ansible.builtin.debug:
+    var: new_dst_appmirrorrelationship_info.resources[0]
+  tags:
+    - new_dst_amr_create
+
+# Wait for the AppMirrorRelationship to reach the Established state
+- name: Wait for AppMirrorRelationship {{ appmirrorrelationship_specs.name }} to reach Established state
+  kubernetes.core.k8s_info:
+    kind: AppMirrorRelationship
+    api_version: protect.trident.netapp.io/v1
+    name: "{{ appmirrorrelationship_specs.name }}"
+    namespace: "{{ src_vm_namespace }}"
+    host: "{{ src_oc_api_url }}"
+    api_key: "{{ src_oc_api_token }}"
+    validate_certs: false
+  register: new_dst_amr_state
+  until: >
+    new_dst_amr_state.resources | length > 0 and
+    new_dst_amr_state.resources[0].status.state is defined and
+    new_dst_amr_state.resources[0].status.state == "Established"
+  retries: 60
+  delay: 30
+  changed_when: false
+  tags:
+    - new_dst_amr_create
+
+# Display the AppMirrorRelationship state after establishment
+- name: Display AppMirrorRelationship state after reaching Established
+  ansible.builtin.debug:
+    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ new_dst_amr_state.resources[0].status.state }}' state"
+  when: new_dst_amr_state.resources | length > 0 and new_dst_amr_state.resources[0].status.state is defined
+  tags:
+    - new_dst_amr_create

@@ -1,0 +1,62 @@
+---
+# Ansible tasks to create Snapshot schedules for VMs in OpenShift Virtualization using Trident protect
+
+# Create snapshot schedule for specific VMs in a namespace by using corresponding application
+- name: Create snapshot schedule for specific VMs in {{ vm_namespace | default('') }} namespace by using corresponding application {{ application_name | default('') }}
+  kubernetes.core.k8s:
+    state: present
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+    namespace: "{{ vm_namespace | default('') }}"
+    definition:
+      apiVersion: protect.trident.netapp.io/v1
+      kind: Schedule
+      metadata:
+        name: "{{ snapshot_schedule_name | default('') }}"
+      spec:
+        applicationRef: "{{ application_name | default('') }}"
+        appVaultRef: "{{ appvault_name | default('') }}"
+        enabled: true
+        granularity: "{{ snapshot_granularity | default('') }}"
+        hour: "{{ snapshot_hour | default('') | string }}"
+        dayOfMonth: "{{ snapshot_day_of_month | default('') | string }}"
+        dayOfWeek: "{{ snapshot_day_of_week | default('') | string }}"
+        minute: "{{ snapshot_minute | default('') | string }}"
+        snapshotRetention: "{{ snapshot_retention_count | default('') | string }}"
+        backupRetention: "0"
+  when:
+    - snapshot_schedule_name is defined and snapshot_schedule_name != ""
+    - application_name is defined and application_name != ""
+    - appvault_name is defined and appvault_name != ""
+    - vm_namespace is defined and vm_namespace != ""
+    - snapshot_granularity is defined and snapshot_granularity != ""
+    - snapshot_retention_count is defined and snapshot_retention_count != ""
+  tags:
+    - tp_create_snapshot_schedule
+
+# Verify the newly created snapshot schedule is in place
+- name: Get snapshot schedule {{ snapshot_schedule_name | default('') }} from {{ vm_namespace | default('') }} namespace
+  kubernetes.core.k8s_info:
+    api_version: protect.trident.netapp.io/v1
+    kind: Schedule
+    name: "{{ snapshot_schedule_name | default('') }}"
+    namespace: "{{ vm_namespace | default('') }}"
+    host: "{{ oc_api_url }}"
+    api_key: "{{ oc_api_token }}"
+    validate_certs: false
+  register: schedule_output
+  when: 
+    - snapshot_schedule_name is defined and snapshot_schedule_name != ""
+    - vm_namespace is defined and vm_namespace != ""
+  tags:
+    - tp_verify_snapshot_schedule
+
+- name: Verify that the snapshot schedule {{ snapshot_schedule_name | default('') }} was created successfully in {{ vm_namespace | default('') }} namespace
+  ansible.builtin.debug:
+    msg: "{{ schedule_output.resources[0] }}"
+  when: 
+    - schedule_output.resources is defined
+    - schedule_output.resources | length > 0
+  tags:
+    - tp_verify_snapshot_schedule
