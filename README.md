@@ -85,7 +85,7 @@ See the [changelog](https://github.com/NetApp/netapp.trident_protect/tree/main/c
 
 ## More information
 
-* [NetApp Trident Protect documentation](https://docs.netapp.com/us-en/trident/trident-protect/)
+* [NetApp Trident Protect documentation](https://docs.netapp.com/us-en/trident/trident-protect/learn-about-trident-protect.html)
 * [kubernetes.core Ansible collection](https://galaxy.ansible.com/ui/repo/published/kubernetes/core)
 * [Ansible user guide](https://docs.ansible.com/ansible/devel/user_guide/index.html)
 * [Ansible developer guide](https://docs.ansible.com/ansible/devel/dev_guide/index.html)
