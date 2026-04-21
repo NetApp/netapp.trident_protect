@@ -1,0 +1,9 @@
+#  Changelog for Ansible Validated Collection: netapp.trident_protect
+
+## Version
+1.0.0
+releases:
+  1.0.0:
+    changes:
+      added:
+        - Initial version
