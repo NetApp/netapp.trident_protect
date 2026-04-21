@@ -1,0 +1,4 @@
+---
+# Python dependencies of this collection
+# Note: This collection contains no custom Python code (no modules, plugins, or filters). All tasks use the kubernetes.core.k8s module 
+# from the kubernetes.core collection, whose Python dependencies (kubernetes, PyYAML, jsonpatch) are managed by that collection.
