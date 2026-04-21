@@ -29,4 +29,4 @@ Ansible:
     └── vars
 ```
 
-A full list of plugin types can be found at [Working With Plugins](https://docs.ansible.com/ansible-core/2.17/plugins/plugins.html).
+A full list of plugin types can be found at [Working With Plugins](https://docs.ansible.com/ansible-core/2.20/plugins/plugins.html).
