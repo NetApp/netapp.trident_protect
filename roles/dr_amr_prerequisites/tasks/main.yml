@@ -20,8 +20,8 @@
       - src_ontap_s3_specs.s3_bucket_name is defined and src_ontap_s3_specs.s3_bucket_name | default('') | trim | length > 0
       - src_ontap_s3_specs.s3_endpoint is defined and src_ontap_s3_specs.s3_endpoint | default('') | trim | length > 0
       - src_appvault_name is defined and src_appvault_name | default('') | trim | length > 0
-    fail_msg: "Variables for secret creation and AppVault setup are not properly defined on the source cluster. Check vars/trident_protect_main.yml"
-    success_msg: "Variables validated successfully for secret creation and AppVault setup on the source cluster"
+    fail_msg: Variables for secret creation and AppVault setup are not properly defined on the source cluster. Check vars/trident_protect_main.yml
+    success_msg: Variables validated successfully for secret creation and AppVault setup on the source cluster
   tags:
     - src_preflight
     - dst_preflight
@@ -97,7 +97,7 @@
         name: "{{ src_appvault_name }}"
         namespace: trident-protect
       spec:
-        providerType: "OntapS3"
+        providerType: OntapS3
         providerConfig:
           s3:
             bucketName: "{{ src_ontap_s3_specs.s3_bucket_name }}"
@@ -147,8 +147,8 @@
       - (src_vm_list is defined and src_vm_list | length > 0)
       - (src_pvc_list is defined and src_pvc_list | length > 0)
       - src_application_name is defined and src_application_name | default('') | trim | length > 0
-    fail_msg: "Variables for source namespace, VM/PVC label and Application configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for source namespace, VM/PVC label and Application configuration validated successfully"
+    fail_msg: Variables for source namespace, VM/PVC label and Application configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for source namespace, VM/PVC label and Application configuration validated successfully
   tags:
     - src_preflight
     - src_oc_label_vms_and_pvcs
@@ -172,7 +172,8 @@
     - dst_preflight
 
 # Label specific VMs and PVCs in source namespace for snapshot and replication purposes. This is required as Application CR uses label selector to select VMs and PVCs for replication.
-- name: Label VMs in source namespace {{ src_vm_namespace }} for which snapshot needs to be taken and replicated. This label is used in the Application CR to select VMs for replication.
+- name: Label VMs in source namespace {{ src_vm_namespace }} for which snapshot needs to be taken and replicated. This label is used in the Application CR to
+    select VMs for replication.
   kubernetes.core.k8s:
     state: present
     host: "{{ src_oc_api_url }}"
@@ -191,7 +192,8 @@
     - src_oc_label_vms_and_pvcs
     - src_oc_label_vms
 
-- name: Label PVCs in source namespace {{ src_vm_namespace }} for which snapshot needs to be taken and replicated. This label is used in the Application CR to select PVCs for replication.
+- name: Label PVCs in source namespace {{ src_vm_namespace }} for which snapshot needs to be taken and replicated. This label is used in the Application CR to
+    select PVCs for replication.
   kubernetes.core.k8s:
     state: present
     host: "{{ src_oc_api_url }}"
@@ -211,7 +213,7 @@
     - src_oc_label_pvcs
 
 # Verify labels on VMs and PVCs in source namespace
-- name: Verify labels on VMs in source namespace {{ src_vm_namespace}}
+- name: Verify labels on VMs in source namespace {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
     host: "{{ src_oc_api_url }}"
     api_key: "{{ src_oc_api_token }}"
@@ -226,7 +228,7 @@
     - src_oc_verify_vms_and_pvcs_labels
     - src_oc_verify_vms_labels
 
-- name: Display labels on VMs in source namespace {{ src_vm_namespace}}
+- name: Display labels on VMs in source namespace {{ src_vm_namespace }}
   ansible.builtin.debug:
     msg: "VM '{{ item.resources[0].metadata.name }}' has category label: {{ item.resources[0].metadata.labels.category | default('not set') }}"
   loop: "{{ src_vm_label_info.results }}"
@@ -235,7 +237,7 @@
     - src_oc_verify_vms_and_pvcs_labels
     - src_oc_verify_vms_labels
 
-- name: Verify labels on PVCs in source namespace {{ src_vm_namespace}}
+- name: Verify labels on PVCs in source namespace {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
     host: "{{ src_oc_api_url }}"
     api_key: "{{ src_oc_api_token }}"
@@ -250,7 +252,7 @@
     - src_oc_verify_vms_and_pvcs_labels
     - src_oc_verify_pvcs_labels
 
-- name: Display labels on PVCs in source namespace {{ src_vm_namespace}}
+- name: Display labels on PVCs in source namespace {{ src_vm_namespace }}
   ansible.builtin.debug:
     msg: "PVC '{{ item.resources[0].metadata.name }}' has category label: {{ item.resources[0].metadata.labels.category | default('not set') }}"
   loop: "{{ src_pvc_label_info.results }}"
@@ -315,9 +317,9 @@
       - src_snapshot_schedule_specs.recurrence_rule is defined and src_snapshot_schedule_specs.recurrence_rule is mapping
       - src_snapshot_schedule_specs.recurrence_rule.dtstart is defined and src_snapshot_schedule_specs.recurrence_rule.dtstart | default('') | trim | length > 0
       - src_snapshot_schedule_specs.recurrence_rule.rrule is defined and src_snapshot_schedule_specs.recurrence_rule.rrule | default('') | trim | length > 0
-    fail_msg: "Variables for snapshot schedule configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for snapshot schedule configuration validated successfully"
-  when: src_scheduled_snapshot | default(false) == true
+    fail_msg: Variables for snapshot schedule configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for snapshot schedule configuration validated successfully
+  when: src_scheduled_snapshot | default(false)
   tags:
     - src_preflight
     - src_snapshot_schedule_create
@@ -342,12 +344,12 @@
         snapshotReclaimPolicy: "{{ src_snapshot_schedule_specs.snapshot_reclaim_policy }}"
         backupRetention: "0"
         enabled: true
-        granularity: "Custom"
+        granularity: Custom
         snapshotRetention: "{{ src_snapshot_schedule_specs.retention_count | default('') | string }}"
         recurrenceRule: |-
           DTSTART:{{ src_snapshot_schedule_specs.recurrence_rule.dtstart }}
           RRULE:{{ src_snapshot_schedule_specs.recurrence_rule.rrule }}
-  when: src_scheduled_snapshot | default(false) == true
+  when: src_scheduled_snapshot | default(false)
   tags:
     - src_snapshot_schedule_create
 
@@ -363,7 +365,7 @@
     validate_certs: false
   register: src_snapshot_schedule_info
   changed_when: false
-  when: src_scheduled_snapshot | default(false) == true
+  when: src_scheduled_snapshot | default(false)
   tags:
     - src_snapshot_schedule_verify
 
@@ -371,7 +373,7 @@
   ansible.builtin.debug:
     var: src_snapshot_schedule_info.resources[0]
   when:
-    - src_scheduled_snapshot | default(false) == true
+    - src_scheduled_snapshot | default(false)
     - src_snapshot_schedule_info.resources | length > 0
   tags:
     - src_snapshot_schedule_verify
@@ -384,9 +386,9 @@
       - src_on_demand_snapshot_specs is mapping
       - src_on_demand_snapshot_specs.name is defined and src_on_demand_snapshot_specs.name | default('') | trim | length > 0
       - src_on_demand_snapshot_specs.reclaim_policy is defined and src_on_demand_snapshot_specs.reclaim_policy | default('') | trim | length > 0
-    fail_msg: "Variables for on-demand snapshot configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for on-demand snapshot configuration validated successfully"
-  when: src_on_demand_snapshot | default(false) == true
+    fail_msg: Variables for on-demand snapshot configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for on-demand snapshot configuration validated successfully
+  when: src_on_demand_snapshot | default(false)
   tags:
     - src_preflight
     - src_on_demand_snapshot_create
@@ -408,7 +410,7 @@
         appVaultRef: "{{ src_appvault_name }}"
         applicationRef: "{{ src_application_name }}"
         reclaimPolicy: "{{ src_on_demand_snapshot_specs.reclaim_policy }}"
-  when: src_on_demand_snapshot | default(false) == true
+  when: src_on_demand_snapshot | default(false)
   tags:
     - src_on_demand_snapshot_create
 
@@ -424,7 +426,7 @@
     validate_certs: false
   register: src_on_demand_snapshot_info
   changed_when: false
-  when: src_on_demand_snapshot | default(false) == true
+  when: src_on_demand_snapshot | default(false)
   tags:
     - src_on_demand_snapshot_verify
 
@@ -432,7 +434,7 @@
   ansible.builtin.debug:
     var: src_on_demand_snapshot_info.resources[0]
   when:
-    - src_on_demand_snapshot | default(false) == true
+    - src_on_demand_snapshot | default(false)
     - src_on_demand_snapshot_info.resources | length > 0
   tags:
     - src_on_demand_snapshot_verify
@@ -455,8 +457,8 @@
       - dst_ontap_s3_specs.s3_bucket_name is defined and dst_ontap_s3_specs.s3_bucket_name | default('') | trim | length > 0
       - dst_ontap_s3_specs.s3_endpoint is defined and dst_ontap_s3_specs.s3_endpoint | default('') | trim | length > 0
       - dst_appvault_name is defined and dst_appvault_name | default('') | trim | length > 0
-    fail_msg: "Variables for configuration on destination cluster are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables validated successfully for configuration on destination cluster such as secrets and AppVaults"
+    fail_msg: Variables for configuration on destination cluster are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables validated successfully for configuration on destination cluster such as secrets and AppVaults
   tags:
     - dst_preflight
     - dst_namespace_create
@@ -552,11 +554,11 @@
         name: "{{ src_appvault_name }}"
         namespace: trident-protect
       spec:
-        providerType: "OntapS3"
+        providerType: OntapS3
         providerConfig:
           s3:
             bucketName: "{{ src_ontap_s3_specs.s3_bucket_name }}"
-            endpoint: "{{ src_ontap_s3_specs.s3_endpoint }}"    # Provide LIF for S3 access
+            endpoint: "{{ src_ontap_s3_specs.s3_endpoint }}" # Provide LIF for S3 access
             secure: "false"
             skipCertValidation: "true"
         providerCredentials:
@@ -646,11 +648,11 @@
         name: "{{ dst_appvault_name }}"
         namespace: trident-protect
       spec:
-        providerType: "OntapS3"
+        providerType: OntapS3
         providerConfig:
           s3:
             bucketName: "{{ dst_ontap_s3_specs.s3_bucket_name }}"
-            endpoint: "{{ dst_ontap_s3_specs.s3_endpoint }}"    # Provide LIF for S3 access
+            endpoint: "{{ dst_ontap_s3_specs.s3_endpoint }}" # Provide LIF for S3 access
             secure: "false"
             skipCertValidation: "true"
         providerCredentials:

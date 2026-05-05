@@ -78,14 +78,15 @@
 
 # Capture the basename (last part after the final slash) from appArchivePath of the shutdown snapshot
 - name: Set basename fact from appArchivePath of the created shutdown snapshot
-  set_fact:
+  ansible.builtin.set_fact:
     shutdown_snapshot_basename: "{{ shutdown_snapshot_verify_info.resources[0].status.appArchivePath.split('/')[-1] }}"
   tags:
     - create_shutdown_snapshot
     - new_dst_amr_promote
 
 # Fetch the source application UID from the source OpenShift cluster (original destination cluster)
-- name: Get source application UID from the source OpenShift cluster (original destination cluster) for AMR promotion on the new destination cluster (original source cluster)
+- name: Get source application UID from the source OpenShift cluster (original destination cluster) for AMR promotion on the new destination cluster (original
+    source cluster)
   kubernetes.core.k8s_info:
     kind: Application
     api_version: protect.trident.netapp.io/v1
@@ -124,7 +125,7 @@
         name: "{{ appmirrorrelationship_specs.name }}"
         namespace: "{{ src_vm_namespace }}"
       spec:
-        desiredState: "Promoted"
+        desiredState: Promoted
         promotedSnapshot: "{{ shutdown_snapshot_basename }}"
         destinationAppVaultRef: "{{ src_appvault_name }}"
         sourceAppVaultRef: "{{ dst_appvault_name }}"
@@ -160,7 +161,8 @@
     - new_dst_amr_promote
 
 # Display the AppMirrorRelationship details promoted on the new destination OpenShift cluster (original source cluster)
-- name: Display AppMirrorRelationship information promoted in {{ src_vm_namespace }} namespace on the new destination OpenShift cluster (original source cluster)
+- name: Display AppMirrorRelationship information promoted in {{ src_vm_namespace }} namespace on the new destination OpenShift cluster (original source
+    cluster)
   ansible.builtin.debug:
     var: new_dst_appmirrorrelationship_info.resources[0]
   tags:
@@ -190,7 +192,7 @@
 # Display the AppMirrorRelationship state after promotion
 - name: Display AppMirrorRelationship state after reaching Promoted
   ansible.builtin.debug:
-    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ new_dst_amr_state.resources[0].status.state }}' state"
+    msg: AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ new_dst_amr_state.resources[0].status.state }}' state
   when: new_dst_amr_state.resources | length > 0 and new_dst_amr_state.resources[0].status.state is defined
   tags:
     - new_dst_amr_promote

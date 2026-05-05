@@ -46,7 +46,7 @@
     api_key: "{{ oc_api_token }}"
     validate_certs: false
   register: schedule_output
-  when: 
+  when:
     - snapshot_schedule_name is defined and snapshot_schedule_name != ""
     - vm_namespace is defined and vm_namespace != ""
   tags:
@@ -55,7 +55,7 @@
 - name: Verify that the snapshot schedule {{ snapshot_schedule_name | default('') }} was created successfully in {{ vm_namespace | default('') }} namespace
   ansible.builtin.debug:
     msg: "{{ schedule_output.resources[0] }}"
-  when: 
+  when:
     - schedule_output.resources is defined
     - schedule_output.resources | length > 0
   tags:

@@ -67,7 +67,8 @@
 
 - name: Display message confirming AMR deletion on new destination cluster (original source cluster)
   ansible.builtin.debug:
-    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' has been fully deleted from namespace '{{ src_vm_namespace }}' on the new destination cluster (original source cluster). Ready for reverse resync."
+    msg: AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' has been fully deleted from namespace '{{ src_vm_namespace }}' on the new destination
+      cluster (original source cluster). Ready for reverse resync.
   tags:
     - delete_amr_prepare_failback
 
@@ -86,8 +87,8 @@
       - src_snapshot_schedule_specs.recurrence_rule is defined and src_snapshot_schedule_specs.recurrence_rule is mapping
       - src_snapshot_schedule_specs.recurrence_rule.dtstart is defined and src_snapshot_schedule_specs.recurrence_rule.dtstart | default('') | trim | length > 0
       - src_snapshot_schedule_specs.recurrence_rule.rrule is defined and src_snapshot_schedule_specs.recurrence_rule.rrule | default('') | trim | length > 0
-    fail_msg: "Variables for snapshot schedule configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for snapshot schedule configuration validated successfully"
+    fail_msg: Variables for snapshot schedule configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for snapshot schedule configuration validated successfully
   when: src_scheduled_snapshot | default(false) | bool
   tags:
     - original_src_snapshot_schedule_create
@@ -111,7 +112,7 @@
         snapshotReclaimPolicy: "{{ src_snapshot_schedule_specs.snapshot_reclaim_policy }}"
         backupRetention: "0"
         enabled: true
-        granularity: "Custom"
+        granularity: Custom
         snapshotRetention: "{{ src_snapshot_schedule_specs.retention_count | default('') | string }}"
         recurrenceRule: |-
           DTSTART:{{ src_snapshot_schedule_specs.recurrence_rule.dtstart }}
@@ -156,8 +157,8 @@
       - src_application_name is defined and src_application_name | default('') | trim | length > 0
       - src_on_demand_snapshot_specs.name is defined and src_on_demand_snapshot_specs.name | default('') | trim | length > 0
       - src_on_demand_snapshot_specs.reclaim_policy is defined and src_on_demand_snapshot_specs.reclaim_policy | default('') | trim | length > 0
-    fail_msg: "Variables for on-demand snapshot configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for on-demand snapshot configuration validated successfully"
+    fail_msg: Variables for on-demand snapshot configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for on-demand snapshot configuration validated successfully
   when: src_on_demand_snapshot | default(false) | bool
   tags:
     - original_src_on_demand_snapshot_create

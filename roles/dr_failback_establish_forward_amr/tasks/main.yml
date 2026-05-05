@@ -20,7 +20,8 @@
 - name: Filter snapshots for source application {{ src_application_name }}
   ansible.builtin.set_fact:
     src_snapshots_check:
-      resources: "{{ src_snapshots_all.resources | selectattr('spec.applicationRef', 'defined') | selectattr('spec.applicationRef', 'equalto', src_application_name) | selectattr('status.state', 'defined') | selectattr('status.state', 'equalto', 'Completed') | list }}"
+      resources: "{{ src_snapshots_all.resources | selectattr('spec.applicationRef', 'defined') | selectattr('spec.applicationRef', 'equalto', src_application_name)
+        | selectattr('status.state', 'defined') | selectattr('status.state', 'equalto', 'Completed') | list }}"
   tags:
     - forward_amr_preflight
     - original_dst_amr_create
@@ -29,8 +30,9 @@
   ansible.builtin.assert:
     that:
       - src_snapshots_check.resources | length > 0
-    fail_msg: "No Completed snapshots found for application '{{ src_application_name }}' in namespace {{ src_vm_namespace }}. Ensure snapshots are in Completed state before proceeding with AMR configuration."
-    success_msg: "Found {{ src_snapshots_check.resources | length }} Completed snapshot(s) for application '{{ src_application_name }}' in namespace {{ src_vm_namespace }}. Proceeding with AMR configuration in forward direction."
+    fail_msg: No Completed snapshots found for application '{{ src_application_name }}' in namespace {{ src_vm_namespace }}. Ensure snapshots are in Completed
+      state before proceeding with AMR configuration.
+    success_msg: Found {{ src_snapshots_check.resources | length }} Completed snapshot(s) for application '{{ src_application_name }}' in namespace {{ src_vm_namespace }}. Proceeding with AMR configuration in forward direction.
   tags:
     - forward_amr_preflight
     - original_dst_amr_create
@@ -58,8 +60,8 @@
       - appmirrorrelationship_specs.recurrence_rule is defined and appmirrorrelationship_specs.recurrence_rule is mapping
       - appmirrorrelationship_specs.recurrence_rule.dtstart is defined and appmirrorrelationship_specs.recurrence_rule.dtstart | default('') | trim | length > 0
       - appmirrorrelationship_specs.recurrence_rule.rrule is defined and appmirrorrelationship_specs.recurrence_rule.rrule | default('') | trim | length > 0
-    fail_msg: "Variables for AppMirrorRelationship configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for AppMirrorRelationship configuration validated successfully"
+    fail_msg: Variables for AppMirrorRelationship configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for AppMirrorRelationship configuration validated successfully
   tags:
     - forward_amr_preflight
     - original_dst_amr_create
@@ -104,7 +106,7 @@
         name: "{{ appmirrorrelationship_specs.name }}"
         namespace: "{{ dst_vm_namespace }}"
       spec:
-        desiredState: "Established"
+        desiredState: Established
         destinationAppVaultRef: "{{ dst_appvault_name }}"
         sourceAppVaultRef: "{{ src_appvault_name }}"
         sourceApplicationName: "{{ src_application_name }}"
@@ -166,7 +168,7 @@
 # Display the AppMirrorRelationship state after establishment
 - name: Display AppMirrorRelationship state after reaching Established
   ansible.builtin.debug:
-    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ dst_amr_state.resources[0].status.state }}' state"
+    msg: AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ dst_amr_state.resources[0].status.state }}' state
   when: dst_amr_state.resources | length > 0 and dst_amr_state.resources[0].status.state is defined
   tags:
     - original_dst_amr_create

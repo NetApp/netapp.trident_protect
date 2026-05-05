@@ -21,7 +21,8 @@
 
 - name: Filter snapshots for the application {{ application_name | default('') }}
   ansible.builtin.set_fact:
-    filtered_snapshots: "{{ snapshots_output.resources | selectattr('spec.applicationRef', 'defined') | selectattr('spec.applicationRef', 'equalto', application_name) | list }}"
+    filtered_snapshots: "{{ snapshots_output.resources | selectattr('spec.applicationRef', 'defined') | selectattr('spec.applicationRef', 'equalto', application_name)
+      | list }}"
   when:
     - application_name is defined and application_name != ""
     - snapshots_output is defined
@@ -43,7 +44,7 @@
 
 - name: Display message if no snapshots found
   ansible.builtin.debug:
-    msg: "No snapshots found for application {{ application_name | default('') }} in {{ vm_namespace | default('') }} namespace"
+    msg: No snapshots found for application {{ application_name | default('') }} in {{ vm_namespace | default('') }} namespace
   when:
     - vm_namespace is defined and vm_namespace != ""
     - application_name is defined and application_name != ""
@@ -106,7 +107,7 @@
     kind: VirtualMachine
     namespace: "{{ vm_namespace | default('') }}"
     label_selectors:
-      - "category={{ vm_label | default('') }}"
+      - category={{ vm_label | default('') }}
   register: vm_deletion_check
   when:
     - vm_namespace is defined and vm_namespace != ""
@@ -124,7 +125,7 @@
     kind: PersistentVolumeClaim
     namespace: "{{ vm_namespace | default('') }}"
     label_selectors:
-      - "category={{ vm_label | default('') }}"
+      - category={{ vm_label | default('') }}
   register: pvc_deletion_check
   when:
     - vm_namespace is defined and vm_namespace != ""
@@ -135,8 +136,8 @@
 
 - name: Display message if no VMs and PVCs with label '{{ vm_label | default('') }}' found in {{ vm_namespace | default('') }} namespace
   ansible.builtin.debug:
-    msg: "No VMs and PVCs with label '{{ vm_label | default('') }}' found in {{ vm_namespace | default('') }} namespace. Proceeding with restoration."
-  when: 
+    msg: No VMs and PVCs with label '{{ vm_label | default('') }}' found in {{ vm_namespace | default('') }} namespace. Proceeding with restoration.
+  when:
     - vm_deletion_check is defined
     - vm_deletion_check.resources is defined
     - pvc_deletion_check is defined
@@ -149,7 +150,8 @@
 
 - name: Display message if VMs or PVCs with label '{{ vm_label | default('') }}' still exist in {{ vm_namespace | default('') }} namespace
   ansible.builtin.debug:
-    msg: "Deletion verification failed! Found {{ vm_deletion_check.resources | length }} VM(s) and {{ pvc_deletion_check.resources | length }} PVC(s) with label '{{ vm_label | default('') }}' still remaining in {{ vm_namespace | default('') }} namespace. Please delete them before proceeding with restoration."
+    msg: Deletion verification failed! Found {{ vm_deletion_check.resources | length }} VM(s) and {{ pvc_deletion_check.resources | length }} PVC(s) with label
+      '{{ vm_label | default('') }}' still remaining in {{ vm_namespace | default('') }} namespace. Please delete them before proceeding with restoration.
   when:
     - vm_deletion_check is defined
     - vm_deletion_check.resources is defined
@@ -178,7 +180,7 @@
 
 - name: Display the snapshot that will be used for restoration
   ansible.builtin.debug:
-    msg: "Using snapshot '{{ latest_snapshot.metadata.name }}' with appArchivePath '{{ latest_snapshot.status.appArchivePath }}' for restoration"
+    msg: Using snapshot '{{ latest_snapshot.metadata.name }}' with appArchivePath '{{ latest_snapshot.status.appArchivePath }}' for restoration
   when:
     - filtered_snapshots is defined and filtered_snapshots | length > 0
     - latest_snapshot is defined
@@ -197,7 +199,7 @@
 
 - name: Display snapshot volume snapshot count
   ansible.builtin.debug:
-    msg: "Snapshot '{{ latest_snapshot.metadata.name }}' contains {{ latest_snapshot.status.volumeSnapshots | default([]) | length }} volume snapshot(s)"
+    msg: Snapshot '{{ latest_snapshot.metadata.name }}' contains {{ latest_snapshot.status.volumeSnapshots | default([]) | length }} volume snapshot(s)
   when:
     - filtered_snapshots is defined and filtered_snapshots | length > 0
     - latest_snapshot is defined
@@ -206,8 +208,8 @@
 
 - name: Fail if snapshot is empty (no volume snapshots)
   ansible.builtin.fail:
-    msg: "Cannot proceed with restoration! Snapshot '{{ latest_snapshot.metadata.name }}' is empty (no volume snapshots found). This means no VMs with label '{{ vm_label | default('') }}' existed when the snapshot was taken. Please ensure VMs have the correct labels and wait for a new snapshot to be created."
-  when: 
+    msg: Cannot proceed with restoration! Snapshot '{{ latest_snapshot.metadata.name }}' is empty (no volume snapshots found). This means no VMs with label '{{ vm_label | default('') }}' existed when the snapshot was taken. Please ensure VMs have the correct labels and wait for a new snapshot to be created.
+  when:
     - filtered_snapshots is defined and filtered_snapshots | length > 0
     - latest_snapshot is defined
     - snapshot_has_volumes is defined
@@ -227,11 +229,11 @@
       apiVersion: protect.trident.netapp.io/v1
       kind: SnapshotInplaceRestore
       metadata:
-        name: "{{ snapshotinplacerestore_name | default('') }}"  # Name of the SnapshotInplaceRestore object used for restoration
+        name: "{{ snapshotinplacerestore_name | default('') }}" # Name of the SnapshotInplaceRestore object used for restoration
       spec:
         appVaultRef: "{{ appvault_name | default('') }}"
         appArchivePath: "{{ latest_snapshot.status.appArchivePath }}"
-  when: 
+  when:
     - snapshot_has_volumes is defined
     - snapshot_has_volumes
     - vm_namespace is defined and vm_namespace != ""
@@ -280,7 +282,7 @@
 
 - name: Display SnapshotInplaceRestore details for {{ snapshotinplacerestore_name | default('') }}
   ansible.builtin.debug:
-    msg: 
+    msg:
       - "Name: {{ item.metadata.name }}"
       - "State: {{ item.status.state | default('N/A') }}"
       - "AppVault: {{ item.spec.appVaultRef }}"
@@ -308,7 +310,7 @@
     kind: VirtualMachine
     namespace: "{{ vm_namespace | default('') }}"
     label_selectors:
-      - "category={{ vm_label | default('') }}"
+      - category={{ vm_label | default('') }}
   register: restored_vms_info
   when:
     - vm_namespace is defined and vm_namespace != ""
@@ -326,7 +328,7 @@
     kind: PersistentVolumeClaim
     namespace: "{{ vm_namespace | default('') }}"
     label_selectors:
-      - "category={{ vm_label | default('') }}"
+      - category={{ vm_label | default('') }}
   register: restored_pvcs_info
   when:
     - vm_namespace is defined and vm_namespace != ""

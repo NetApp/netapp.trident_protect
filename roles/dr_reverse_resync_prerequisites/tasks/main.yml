@@ -9,7 +9,7 @@
     api_version: kubevirt.io/v1
     namespace: "{{ dst_vm_namespace }}"
     label_selectors:
-      - "category={{ src_vm_label }}"
+      - category={{ src_vm_label }}
     host: "{{ dst_oc_api_url }}"
     api_key: "{{ dst_oc_api_token }}"
     validate_certs: false
@@ -21,7 +21,8 @@
 
 - name: Display failed over VMs running on the destination cluster
   ansible.builtin.debug:
-    msg: "Confirmed {{ dst_vms_running_check.resources | length }} VM(s) present on destination cluster in namespace '{{ dst_vm_namespace }}'. Proceeding with reverse resync prerequisites."
+    msg: Confirmed {{ dst_vms_running_check.resources | length }} VM(s) present on destination cluster in namespace '{{ dst_vm_namespace }}'. Proceeding with
+      reverse resync prerequisites.
   tags:
     - verify_dst_vms_running
 
@@ -79,7 +80,8 @@
 
 - name: Display message confirming AMR deletion on destination cluster
   ansible.builtin.debug:
-    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' has been fully deleted from namespace '{{ dst_vm_namespace }}' on the destination cluster. Ready for reverse resync."
+    msg: AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' has been fully deleted from namespace '{{ dst_vm_namespace }}' on the destination
+      cluster. Ready for reverse resync.
   tags:
     - delete_dst_amr
 
@@ -97,8 +99,8 @@
       - dst_ontap_s3_specs.s3_bucket_name is defined and dst_ontap_s3_specs.s3_bucket_name | default('') | trim | length > 0
       - dst_ontap_s3_specs.s3_endpoint is defined and dst_ontap_s3_specs.s3_endpoint | default('') | trim | length > 0
       - dst_appvault_name is defined and dst_appvault_name | default('') | trim | length > 0
-    fail_msg: "Variables for configuration on new destination (original source) cluster are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables validated successfully for configuration on new destination (original source) cluster such as secrets and AppVaults"
+    fail_msg: Variables for configuration on new destination (original source) cluster are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables validated successfully for configuration on new destination (original source) cluster such as secrets and AppVaults
   tags:
     - new_dst_preflight
     - new_dst_src_ontap_s3_secret_create
@@ -172,11 +174,11 @@
         name: "{{ dst_appvault_name }}"
         namespace: trident-protect
       spec:
-        providerType: "OntapS3"
+        providerType: OntapS3
         providerConfig:
           s3:
             bucketName: "{{ dst_ontap_s3_specs.s3_bucket_name }}"
-            endpoint: "{{ dst_ontap_s3_specs.s3_endpoint }}"    # Provide LIF for S3 access
+            endpoint: "{{ dst_ontap_s3_specs.s3_endpoint }}" # Provide LIF for S3 access
             secure: "false"
             skipCertValidation: "true"
         providerCredentials:
@@ -220,7 +222,7 @@
   ansible.builtin.assert:
     that:
       - not (src_scheduled_snapshot | default(false) | bool and src_on_demand_snapshot | default(false) | bool)
-    fail_msg: "src_scheduled_snapshot and src_on_demand_snapshot cannot both be true. Set only one to true in vars/trident_protect_main.yml"
+    fail_msg: src_scheduled_snapshot and src_on_demand_snapshot cannot both be true. Set only one to true in vars/trident_protect_main.yml
     success_msg: "Snapshot mode validated: only one of src_scheduled_snapshot or src_on_demand_snapshot is enabled"
   tags:
     - new_src_preflight
@@ -240,8 +242,8 @@
       - src_snapshot_schedule_specs.recurrence_rule is defined and src_snapshot_schedule_specs.recurrence_rule is mapping
       - src_snapshot_schedule_specs.recurrence_rule.dtstart is defined and src_snapshot_schedule_specs.recurrence_rule.dtstart | default('') | trim | length > 0
       - src_snapshot_schedule_specs.recurrence_rule.rrule is defined and src_snapshot_schedule_specs.recurrence_rule.rrule | default('') | trim | length > 0
-    fail_msg: "Variables for snapshot schedule configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for snapshot schedule configuration validated successfully"
+    fail_msg: Variables for snapshot schedule configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for snapshot schedule configuration validated successfully
   when: src_scheduled_snapshot | default(false) | bool
   tags:
     - new_src_preflight
@@ -266,7 +268,7 @@
         snapshotReclaimPolicy: "{{ src_snapshot_schedule_specs.snapshot_reclaim_policy }}"
         backupRetention: "0"
         enabled: true
-        granularity: "Custom"
+        granularity: Custom
         snapshotRetention: "{{ src_snapshot_schedule_specs.retention_count | default('') | string }}"
         recurrenceRule: |-
           DTSTART:{{ src_snapshot_schedule_specs.recurrence_rule.dtstart }}
@@ -311,8 +313,8 @@
       - src_application_name is defined and src_application_name | default('') | trim | length > 0
       - src_on_demand_snapshot_specs.name is defined and src_on_demand_snapshot_specs.name | default('') | trim | length > 0
       - src_on_demand_snapshot_specs.reclaim_policy is defined and src_on_demand_snapshot_specs.reclaim_policy | default('') | trim | length > 0
-    fail_msg: "Variables for on-demand snapshot configuration are not properly defined. Check vars/trident_protect_main.yml"
-    success_msg: "Variables for on-demand snapshot configuration validated successfully"
+    fail_msg: Variables for on-demand snapshot configuration are not properly defined. Check vars/trident_protect_main.yml
+    success_msg: Variables for on-demand snapshot configuration validated successfully
   when: src_on_demand_snapshot | default(false) | bool
   tags:
     - new_src_preflight

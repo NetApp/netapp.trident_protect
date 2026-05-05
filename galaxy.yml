@@ -19,7 +19,6 @@ readme: README.md
 authors:
   - Kamini Singh <kamini.singh@netapp.com>
 
-
 ### OPTIONAL but strongly recommended
 # A short summary description of the collection
 description: Ansible Day2 use-cases involving Trident Protect in Red Hat OpenShift Virtualization environment
@@ -37,15 +36,17 @@ license_file: LICENSE
 # requirements as 'namespace' and 'name'
 tags:
   - netapp
-  - trident-protect
+  - trident
   - openshift
+  - kubernetes
+  - storage
 
 # Collections that this collection requires to be installed for it to be usable. The key of the dict is the
 # collection label 'namespace.name'. The value is a version range
 # L(specifiers,https://python-semanticversion.readthedocs.io/en/latest/#requirement-specification). Multiple version
 # range specifiers can be set and are separated by ','
 dependencies:
-  kubernetes.core: '*'
+  kubernetes.core: "*"
 
 # The URL of the originating SCM repository
 repository: https://github.com/NetApp/netapp.trident_protect

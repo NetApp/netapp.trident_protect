@@ -10,9 +10,9 @@ galaxy_info:
   galaxy_tags:
     - netapp
     - trident
-    - trident_protect
     - openshift
     - kubernetes
+    - storage
     - kubevirt
 
 dependencies: []

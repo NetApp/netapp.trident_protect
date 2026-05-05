@@ -2,7 +2,7 @@
 # Ansible tasks for executing failover of replicated VMs to the destination OpenShift cluster using Trident protect.
 # This role should be executed AFTER the dr_amr_config role has been run and the AppMirrorRelationship (AMR) is in Established state with successful replication.
 # This role assumes that there is disaster on the source cluster and the replicated VMs need to be failed over to the destination cluster.
-# 
+#
 # IMPORTANT: During disaster simulation, this role will:
 # 1. Delete the SnapshotSchedule on the source cluster to prevent empty snapshots from being created after VM deletion
 # 2. Stop and delete source VMs to simulate disaster
@@ -34,7 +34,7 @@
 
 - name: Display message when Schedule is not present for source application
   ansible.builtin.debug:
-    msg: "There is no Schedule for application '{{ src_application_name }}' in namespace '{{ src_vm_namespace }}'. Skipping snapshot schedule deletion."
+    msg: There is no Schedule for application '{{ src_application_name }}' in namespace '{{ src_vm_namespace }}'. Skipping snapshot schedule deletion.
   when:
     - simulate_disaster | bool
     - src_snapshot_schedule_check is defined
@@ -65,7 +65,7 @@
 
 - name: Display message about snapshot schedule deletion
   ansible.builtin.debug:
-    msg: "Deleted Schedule '{{ src_snapshot_schedule_specs.name }}' to prevent empty snapshots after disaster"
+    msg: Deleted Schedule '{{ src_snapshot_schedule_specs.name }}' to prevent empty snapshots after disaster
   when:
     - simulate_disaster | bool
     - src_snapshot_schedule_check is defined
@@ -83,7 +83,7 @@
     api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
     label_selectors:
-      - "category={{ src_vm_label }}"
+      - category={{ src_vm_label }}
     host: "{{ src_oc_api_url }}"
     api_key: "{{ src_oc_api_token }}"
     validate_certs: false
@@ -171,7 +171,7 @@
     api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
     label_selectors:
-      - "category={{ src_vm_label }}"
+      - category={{ src_vm_label }}
     host: "{{ src_oc_api_url }}"
     api_key: "{{ src_oc_api_token }}"
     validate_certs: false
@@ -187,7 +187,8 @@
 # Step 5: Summary of disaster simulation
 - name: Display message when no VMs found for disaster simulation
   ansible.builtin.debug:
-    msg: "WARNING: No VMs found in namespace '{{ src_vm_namespace }}' with label '{{ src_vm_label }}'. Disaster simulation skipped. Verify that VMs exist and have the correct label."
+    msg: "WARNING: No VMs found in namespace '{{ src_vm_namespace }}' with label '{{ src_vm_label }}'. Disaster simulation skipped. Verify that VMs exist and have
+      the correct label."
   when:
     - simulate_disaster | bool
     - src_vms_before_failover is defined
@@ -197,7 +198,7 @@
 
 - name: Display message confirming disaster simulation on source cluster (with snapshot schedule deletion)
   ansible.builtin.debug:
-    msg: 
+    msg:
       - "Disaster simulation completed on source cluster:"
       - "  - Deleted Schedule '{{ src_snapshot_schedule_specs.name }}'"
       - "  - Stopped and deleted {{ src_vms_before_failover.resources | length }} VM(s) in namespace '{{ src_vm_namespace }}'"
@@ -213,14 +214,15 @@
 
 - name: Display message confirming disaster simulation on source cluster (without snapshot schedule)
   ansible.builtin.debug:
-    msg: 
+    msg:
       - "Disaster simulation completed on source cluster:"
       - "  - Stopped and deleted {{ src_vms_before_failover.resources | length }} VM(s) in namespace '{{ src_vm_namespace }}'"
   when:
     - simulate_disaster | bool
     - src_vms_before_failover is defined
     - src_vms_before_failover.resources | length > 0
-    - (src_snapshot_schedule_check is not defined or not src_snapshot_schedule_check.api_found | default(false) or src_snapshot_schedule_check.resources | length == 0)
+    - (src_snapshot_schedule_check is not defined or not src_snapshot_schedule_check.api_found | default(false) or src_snapshot_schedule_check.resources |
+      length == 0)
   tags:
     - disaster_simulation
 
@@ -264,7 +266,7 @@
         name: "{{ appmirrorrelationship_specs.name }}"
         namespace: "{{ dst_vm_namespace }}"
       spec:
-        desiredState: "Promoted"
+        desiredState: Promoted
         destinationAppVaultRef: "{{ dst_appvault_name }}"
         sourceAppVaultRef: "{{ src_appvault_name }}"
         sourceApplicationName: "{{ src_application_name }}"
@@ -326,7 +328,7 @@
 # Display the AppMirrorRelationship state after being promoted
 - name: Display AppMirrorRelationship state after being promoted on the destination cluster
   ansible.builtin.debug:
-    msg: "AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ dst_amr_state.resources[0].status.state }}' state"
+    msg: AppMirrorRelationship '{{ appmirrorrelationship_specs.name }}' is now in '{{ dst_amr_state.resources[0].status.state }}' state
   when: dst_amr_state.resources | length > 0 and dst_amr_state.resources[0].status.state is defined
   tags:
     - dr_failover_promote
@@ -338,7 +340,7 @@
     api_version: kubevirt.io/v1
     namespace: "{{ dst_vm_namespace }}"
     label_selectors:
-      - "category={{ src_vm_label }}"
+      - category={{ src_vm_label }}
     host: "{{ dst_oc_api_url }}"
     api_key: "{{ dst_oc_api_token }}"
     validate_certs: false
@@ -352,7 +354,7 @@
 
 - name: Display VMs restored on destination cluster
   ansible.builtin.debug:
-    msg: "Successfully restored {{ dst_vms_after_failover.resources | length }} VM(s) on destination cluster in namespace '{{ dst_vm_namespace }}'"
+    msg: Successfully restored {{ dst_vms_after_failover.resources | length }} VM(s) on destination cluster in namespace '{{ dst_vm_namespace }}'
   when: dst_vms_after_failover.resources | length > 0
   tags:
     - dr_failover_promote

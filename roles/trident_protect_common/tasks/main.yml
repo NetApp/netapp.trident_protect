@@ -34,12 +34,12 @@
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
     validate_certs: false
-    namespace: trident-protect   # Must be in the Trident protect namespace
+    namespace: trident-protect # Must be in the Trident protect namespace
     definition:
       apiVersion: v1
       kind: Secret
       metadata:
-        name: "{{ appvault_secret_name | default('') }}"   # Name of your secret
+        name: "{{ appvault_secret_name | default('') }}" # Name of your secret
       type: Opaque
       data:
         accessKeyID: "{{ s3_access_key | default('') | b64encode }}"
@@ -68,7 +68,7 @@
 - name: Display ONTAP S3 Secret details
   ansible.builtin.debug:
     var: s3_secret_output.resources[0]
-  when: 
+  when:
     - s3_secret_output.resources is defined
     - s3_secret_output.resources | length > 0
   tags:
@@ -81,14 +81,14 @@
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
     validate_certs: false
-    namespace: trident-protect   # Must be in the Trident protect namespace
+    namespace: trident-protect # Must be in the Trident protect namespace
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: AppVault
       metadata:
-        name: "{{ appvault_name | default('') }}"   # Name of your AppVault
+        name: "{{ appvault_name | default('') }}" # Name of your AppVault
       spec:
-        providerType: "OntapS3"
+        providerType: OntapS3
         providerConfig:
           s3:
             bucketName: "{{ ontap_s3_bucket_name | default('') }}"
@@ -98,13 +98,13 @@
         providerCredentials:
           accessKeyID:
             valueFromSecret:
-              name: "{{ appvault_secret_name | default('') }}"   # Name of the S3 secret created earlier
+              name: "{{ appvault_secret_name | default('') }}" # Name of the S3 secret created earlier
               key: accessKeyID
           secretAccessKey:
             valueFromSecret:
               name: "{{ appvault_secret_name | default('') }}"
               key: secretAccessKey
-  when: 
+  when:
     - appvault_name is defined and appvault_name != ""
     - ontap_s3_bucket_name is defined and ontap_s3_bucket_name != ""
     - ontap_s3_endpoint is defined and ontap_s3_endpoint != ""
@@ -168,7 +168,7 @@
         labels:
           category: "{{ vm_label | default('') }}"
   loop: "{{ vm_list | default([]) }}"
-  when: 
+  when:
     - vm_list is defined and vm_list | length > 0
     - vm_namespace is defined and vm_namespace != ""
     - vm_label is defined and vm_label != ""
@@ -193,7 +193,7 @@
         labels:
           category: "{{ vm_label | default('') }}"
   loop: "{{ pvc_list | default([]) }}"
-  when: 
+  when:
     - pvc_list is defined and pvc_list | length > 0
     - vm_namespace is defined and vm_namespace != ""
     - vm_label is defined and vm_label != ""
@@ -213,7 +213,7 @@
     name: "{{ item }}"
   loop: "{{ vm_list | default([]) }}"
   register: vm_label_info
-  when: 
+  when:
     - vm_list is defined and vm_list | length > 0
     - vm_namespace is defined and vm_namespace != ""
   tags:
@@ -232,7 +232,7 @@
     name: "{{ item }}"
   loop: "{{ pvc_list | default([]) }}"
   register: pvc_label_info
-  when: 
+  when:
     - pvc_list is defined and pvc_list | length > 0
     - vm_namespace is defined and vm_namespace != ""
   tags:
@@ -243,7 +243,7 @@
   ansible.builtin.debug:
     msg: "{{ item.resources[0].metadata.labels | default({}) }}"
   loop: "{{ vm_label_info.results | default([]) }}"
-  when: 
+  when:
     - vm_label_info is defined
     - item.resources is defined
     - item.resources | length > 0
@@ -255,7 +255,7 @@
   ansible.builtin.debug:
     msg: "{{ item.resources[0].metadata.labels | default({}) }}"
   loop: "{{ pvc_label_info.results | default([]) }}"
-  when: 
+  when:
     - pvc_label_info is defined
     - item.resources is defined
     - item.resources | length > 0
@@ -275,14 +275,14 @@
       apiVersion: protect.trident.netapp.io/v1
       kind: Application
       metadata:
-        name: "{{ application_name | default('') }}"   # Application name for the VMs
+        name: "{{ application_name | default('') }}" # Application name for the VMs
       spec:
         includedNamespaces:
           - namespace: "{{ vm_namespace | default('') }}"
             labelSelector:
               matchLabels:
                 category: "{{ vm_label | default('') }}"
-  when: 
+  when:
     - application_name is defined and application_name != ""
     - vm_namespace is defined and vm_namespace != ""
     - vm_label is defined and vm_label != ""
@@ -300,7 +300,7 @@
     namespace: "{{ vm_namespace | default('') }}"
     name: "{{ application_name | default('') }}"
   register: application_output
-  when: 
+  when:
     - application_name is defined and application_name != ""
     - vm_namespace is defined and vm_namespace != ""
   tags:
@@ -309,7 +309,7 @@
 - name: Display Application details created in {{ vm_namespace | default('') }} namespace
   ansible.builtin.debug:
     var: application_output.resources[0]
-  when: 
+  when:
     - application_output.resources is defined
     - application_output.resources | length > 0
   tags:

@@ -6,7 +6,7 @@
   vars:
     # Provide all required variables for the role here. See the role
     # README.md for a full list.
-    oc_api_url: "https://api.example.openshift.com:6443"
-    oc_api_token: "<your_api_token>"
+    oc_api_url: https://api.example.openshift.com:6443
+    oc_api_token: <your_api_token>
   roles:
     - dr_failback_establish_forward_amr
