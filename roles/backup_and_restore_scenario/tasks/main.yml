@@ -1,10 +1,13 @@
 ---
 # Ansible tasks to demonstrate Backup and Restore Scenario for VMs in OpenShift Virtualization using Trident protect
-# Note: This playbook assumes that Trident and Trident protect are already installed and configured in your OpenShift cluster and that the common tasks in roles/trident-protect/trident-protect-common have been executed to configure the prerequisites like AppVault and Application.
+# Note: This playbook assumes that Trident and Trident protect are already installed and configured in your
+# OpenShift cluster and that the common tasks in roles/trident-protect/trident-protect-common have been
+# executed to configure the prerequisites like AppVault and Application.
 
 # Create on-demand backup of specific VMs in a namespace by using corresponding application
-- name: Create on-demand backup of specific VMs by using corresponding application {{ application_name | default('') }} in {{ vm_namespace | default('') }}
-    namespace
+- name: >-
+    Create on-demand backup of specific VMs by using corresponding application -
+    {{ application_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -55,7 +58,7 @@
     - tp_wait_for_backup_completion
 
 # Verify that the backup was created successfully
-- name: Verify that the backup {{ on_demand_backup_name | default('') }} was created successfully
+- name: Verify that the on-demand backup was created successfully - {{ on_demand_backup_name | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -83,7 +86,7 @@
     - tp_create_backuprestore
 
 # Create a new namespace for restoration
-- name: Create a new {{ restore_namespace | default('') }} namespace to which you want to restore the VMs
+- name: Create a new restore namespace - {{ restore_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -100,7 +103,7 @@
     - tp_create_backuprestore
 
 # Create a BackupRestore object to restore the VMs from the on-demand backup to a different namespace
-- name: Create a BackupRestore object to restore the VMs from the on-demand backup to {{ restore_namespace | default('') }} namespace
+- name: Create a BackupRestore object to restore the VMs from the on-demand backup - {{ restore_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -153,7 +156,7 @@
     - tp_wait_for_backuprestore_completion
 
 # Verify that the BackupRestore object was created successfully
-- name: Verify that the BackupRestore {{ backuprestore_name | default('') }} was created successfully
+- name: Verify that the BackupRestore was created successfully - {{ backuprestore_name | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -179,7 +182,7 @@
     - tp_verify_backuprestore
 
 # Verify that the VMs have been restored successfully to the new namespace
-- name: Verify VMs restored to {{ restore_namespace | default('') }} namespace
+- name: Verify VMs restored to namespace - {{ restore_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -194,7 +197,7 @@
     - tp_verify_backuprestore_all
 
 # Verify that the PVCs have been restored successfully to the new namespace
-- name: Verify PVCs restored to {{ restore_namespace | default('') }} namespace
+- name: Verify PVCs restored to namespace - {{ restore_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -208,7 +211,7 @@
     - tp_verify_backuprestore_pvcs
     - tp_verify_backuprestore_all
 
-- name: Show restored VM details in {{ restore_namespace | default('') }} namespace
+- name: Show restored VM details in namespace - {{ restore_namespace | default('') }}
   ansible.builtin.debug:
     msg: "Restored VM: {{ item }}"
   loop: "{{ restored_vms_info.resources | default([]) | map(attribute='metadata.name') | list }}"
@@ -217,7 +220,7 @@
     - tp_verify_backuprestore_vms
     - tp_verify_backuprestore_all
 
-- name: Show restored PVC details in {{ restore_namespace | default('') }} namespace
+- name: Show restored PVC details in namespace - {{ restore_namespace | default('') }}
   ansible.builtin.debug:
     msg: "Restored PVC: {{ item }}"
   loop: "{{ restored_pvcs_info.resources | default([]) | map(attribute='metadata.name') | list }}"
@@ -227,7 +230,7 @@
     - tp_verify_backuprestore_all
 
 # Assert all VMs and PVCs restored successfully
-- name: Assert all VMs and PVCs restored in {{ restore_namespace | default('') }} namespace successfully
+- name: Assert all VMs and PVCs restored successfully in namespace - {{ restore_namespace | default('') }}
   ansible.builtin.assert:
     that:
       - vm_list | default([]) | difference(restored_vms_info.resources | default([]) | map(attribute='metadata.name') | list) | length == 0
