@@ -18,22 +18,22 @@
       when: not testrun
 
     - block:
-      - name: Update galaxy.yml
-        ansible.builtin.lineinfile:
-          path: "{{ playbook_dir }}/../galaxy.yml"
-          regexp: "^version: "
-          line: "version: {{ version }}"
+        - name: Update galaxy.yml
+          ansible.builtin.lineinfile:
+            path: "{{ playbook_dir }}/../galaxy.yml"
+            regexp: "^version: "
+            line: "version: {{ version }}"
 
-      - name: Add everything
-        ansible.builtin.command: git add --all
-        when: not testrun
+        - name: Add everything
+          ansible.builtin.command: git add --all
+          when: not testrun
 
-      # git diff-index --quiet HEAD
-      #   0 -> repository is clean, nothing to commit
-      #   1 -> the opposite
-      - name: Commit everything
-        ansible.builtin.shell: 'git diff-index --quiet HEAD || git commit -m "prepare {{ version }} release"'
-        when: not testrun
+        # git diff-index --quiet HEAD
+        #   0 -> repository is clean, nothing to commit
+        #   1 -> the opposite
+        - name: Commit everything
+          ansible.builtin.shell: 'git diff-index --quiet HEAD || git commit -m "prepare {{ version }} release"'
+          when: not testrun
 
       rescue:
         - debug:

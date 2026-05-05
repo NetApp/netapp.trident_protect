@@ -1,4 +1,17 @@
+---
 profile: production
 
 exclude_paths:
   - scripts/
+
+# Rules skipped intentionally:
+#   name[template]    - Many descriptive task names embed Jinja templates
+#                       in the middle (e.g. "in {{ vm_namespace }} namespace")
+#                       for readability; refactoring all of them would hurt
+#                       log clarity.
+#   yaml[line-length] - Some `kubernetes.core.k8s_info` task names and Jinja
+#                       expressions span more than 160 characters but are
+#                       intentionally kept on a single line for readability.
+skip_list:
+  - name[template]
+  - yaml[line-length]

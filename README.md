@@ -49,36 +49,6 @@ ansible-galaxy collection install netapp.trident_protect:==1.0.0
 
 See [using Ansible collections](https://docs.ansible.com/ansible/devel/user_guide/collections_using.html) for more details.
 
-### Running the playbook
-
-Update `vars/trident_protect_main.yml` with your desired configuration before running the playbook.
-
-To execute common Trident Protect tasks (shared by both Backup/Restore and Snapshot/Restore scenarios):
-
-```bash
-ansible-playbook Setup_Trident_Protect_tasks.yml -e @vars/trident_protect_main.yml -t tp_common_tasks
-```
-
-To execute the Backup and Restore scenario:
-
-```bash
-ansible-playbook Setup_Trident_Protect_tasks.yml -e @vars/trident_protect_main.yml -t tp_backup_and_restore_tasks
-```
-
-To create Snapshot schedules for VMs in OpenShift Virtualization:
-
-```bash
-ansible-playbook Setup_Trident_Protect_tasks.yml -e @vars/trident_protect_main.yml -t tp_snapshot_schedule_tasks
-```
-
-To execute the Snapshot and Restore scenario (ensure the snapshot schedule has produced at least one snapshot first):
-
-```bash
-ansible-playbook Setup_Trident_Protect_tasks.yml -e @vars/trident_protect_main.yml -t tp_snapshot_and_restore_tasks
-```
-
-Additional Disaster Recovery tags available in `Setup_Trident_Protect_tasks.yml` include roles for DR prerequisites, AMR configuration, failover, failback (prepare/establish/promote), and reverse resync. Refer to the roles under `roles/trident_protect/` for the full list.
-
 ## Release notes
 
 See the [changelog](https://github.com/NetApp/netapp.trident_protect/tree/main/changelogs/changelog.rst).

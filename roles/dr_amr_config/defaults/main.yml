@@ -1,0 +1,4 @@
+---
+# defaults file for dr_amr_config
+# This role has no opinionated defaults; all variables are expected to be
+# provided by the caller (see README.md for the full list).

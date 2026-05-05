@@ -20,7 +20,7 @@ rules:
     level: error
 
   comments:
-    min-spaces-from-content: 1   # REQUIRED by ansible-lint
+    min-spaces-from-content: 1 # REQUIRED by ansible-lint
 
   comments-indentation: disable
   document-start: disable
@@ -37,7 +37,7 @@ rules:
 
   line-length:
     max: 160
-    level: error
+    level: warning
 
   new-line-at-end-of-file: enable
 
@@ -47,6 +47,6 @@ rules:
   trailing-spaces: enable
   truthy: disable
 
-  octal-values:                  # REQUIRED by ansible-lint
+  octal-values: # REQUIRED by ansible-lint
     forbid-implicit-octal: true
     forbid-explicit-octal: true
