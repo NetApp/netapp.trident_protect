@@ -37,6 +37,11 @@ license_file: LICENSE
 tags:
   - netapp
   - trident
+  - trident_protect
+  - data_protection
+  - backup
+  - snapshot
+  - disaster_recovery
   - openshift
   - kubernetes
   - storage
