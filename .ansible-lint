@@ -3,3 +3,12 @@ profile: production
 
 exclude_paths:
   - scripts/
+
+# Rules skipped intentionally:
+#   var-naming[no-role-prefix] - Roles in this collection use short, descriptive
+#                       register / set_fact names (e.g. `backup_info`,
+#                       `src_application_info`) for readability. Adding the
+#                       full role name as a prefix would make every variable
+#                       reference verbose without functional benefit.
+skip_list:
+  - var-naming[no-role-prefix]
