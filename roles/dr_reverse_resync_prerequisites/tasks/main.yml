@@ -26,7 +26,8 @@
   tags:
     - verify_dst_vms_running
 
-# Delete the Snapshot schedule if any running on the original primary (source cluster) before executing the reverse resync prerequisites tasks. This is required to avoid snapshot creation during reverse resync which can cause reverse resync failure.
+# Delete the Snapshot schedule if any running on the original primary (source cluster) before executing the reverse resync prerequisites tasks.
+# This is required to avoid snapshot creation during reverse resync which can cause reverse resync failure.
 - name: Delete Snapshot schedule on the original source cluster if any before executing the reverse resync prerequisites tasks
   kubernetes.core.k8s:
     kind: Schedule
@@ -227,7 +228,8 @@
   tags:
     - new_src_preflight
 
-# Preflight validation - Validate variables for snapshot schedule configuration on the new source (original destination) cluster before creating the snapshot schedule.
+# Preflight validation - Validate variables for snapshot schedule configuration on the new source (original destination) cluster
+# before creating the snapshot schedule.
 - name: Validate variables for snapshot schedule configuration on the new source (original destination) cluster.
   ansible.builtin.assert:
     that:
@@ -250,7 +252,7 @@
     - new_src_snapshot_schedule_create
 
 # On the new source OpenShift cluster, take a snapshot of the source application. This snapshot is used as the basis for replication on the destination cluster.
-- name: Create a snapshot schedule for the source application {{ src_application_name }} on the new source OpenShift cluster
+- name: Create a snapshot schedule on the new source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
     state: present
     host: "{{ dst_oc_api_url }}"
@@ -293,7 +295,7 @@
   tags:
     - new_src_snapshot_schedule_verify
 
-- name: Display source snapshot schedule details created in {{ dst_vm_namespace }} namespace
+- name: Display source snapshot schedule details created in namespace - {{ dst_vm_namespace }}
   ansible.builtin.debug:
     var: new_src_snapshot_schedule_info.resources[0]
   when:
@@ -302,7 +304,8 @@
   tags:
     - new_src_snapshot_schedule_verify
 
-# Preflight validation - Validate variables for on-demand snapshot configuration on the new source (original destination) cluster before creating the on-demand snapshot.
+# Preflight validation - Validate variables for on-demand snapshot configuration on the new source (original destination) cluster
+# before creating the on-demand snapshot.
 - name: Validate variables for on-demand snapshot configuration on the new source (original destination) cluster.
   ansible.builtin.assert:
     that:
@@ -320,8 +323,9 @@
     - new_src_preflight
     - new_src_on_demand_snapshot_create
 
-# On the new source OpenShift cluster, take an on-demand snapshot of the source application. This snapshot is used as the basis for replication on the destination cluster.
-- name: Create an on-demand snapshot for the source application {{ src_application_name }} on the new source OpenShift cluster
+# On the new source OpenShift cluster, take an on-demand snapshot of the source application. This snapshot is used as the basis
+# for replication on the destination cluster.
+- name: Create an on-demand snapshot on the new source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
     state: present
     host: "{{ dst_oc_api_url }}"
@@ -363,7 +367,7 @@
   tags:
     - new_src_on_demand_snapshot_verify
 
-- name: Display source on-demand snapshot details created in {{ dst_vm_namespace }} namespace
+- name: Display source on-demand snapshot details created in namespace - {{ dst_vm_namespace }}
   ansible.builtin.debug:
     var: new_src_on_demand_snapshot_info.resources[0]
   when:
