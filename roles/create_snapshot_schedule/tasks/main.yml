@@ -2,7 +2,9 @@
 # Ansible tasks to create Snapshot schedules for VMs in OpenShift Virtualization using Trident protect
 
 # Create snapshot schedule for specific VMs in a namespace by using corresponding application
-- name: Create snapshot schedule for specific VMs in {{ vm_namespace | default('') }} namespace by using corresponding application {{ application_name | default('') }}
+- name: >-
+    Create snapshot schedule for specific VMs by using corresponding application -
+    {{ application_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -36,7 +38,7 @@
     - tp_create_snapshot_schedule
 
 # Verify the newly created snapshot schedule is in place
-- name: Get snapshot schedule {{ snapshot_schedule_name | default('') }} from {{ vm_namespace | default('') }} namespace
+- name: Get snapshot schedule from namespace - {{ snapshot_schedule_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     api_version: protect.trident.netapp.io/v1
     kind: Schedule
@@ -52,7 +54,7 @@
   tags:
     - tp_verify_snapshot_schedule
 
-- name: Verify that the snapshot schedule {{ snapshot_schedule_name | default('') }} was created successfully in {{ vm_namespace | default('') }} namespace
+- name: Verify that the snapshot schedule was created successfully - {{ snapshot_schedule_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   ansible.builtin.debug:
     msg: "{{ schedule_output.resources[0] }}"
   when:
