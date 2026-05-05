@@ -1,11 +1,14 @@
 ---
 # Ansible tasks to demonstrate Snapshot and Restore Scenario for VMs in OpenShift Virtualization using Trident protect
-# Note: This playbook assumes that Trident and Trident protect are already installed and configured in your OpenShift cluster and that the common tasks in roles/trident-protect/trident-protect-common have been executed to configure the prerequisites like AppVault and Application.
-# Note: Make sure to run the tasks in roles/trident-protect/create_snapshot_schedule first to create the snapshot schedule before running the restore tasks here.
+# Note: This playbook assumes that Trident and Trident protect are already installed and configured in your OpenShift cluster
+# and that the common tasks in roles/trident-protect/trident-protect-common have been executed to configure the prerequisites
+# like AppVault and Application.
+# Note: Make sure to run the tasks in roles/trident-protect/create_snapshot_schedule first to create the snapshot schedule
+# before running the restore tasks here.
 # Note: Ensure that the snapshot schedule has created at least one snapshot before running the restore tasks here.
 
 # View the snapshots created by the snapshot schedule
-- name: Get snapshots created by the snapshot schedule in {{ vm_namespace | default('') }} namespace
+- name: Get snapshots created by the snapshot schedule in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -21,8 +24,11 @@
 
 - name: Filter snapshots for the application {{ application_name | default('') }}
   ansible.builtin.set_fact:
-    filtered_snapshots: "{{ snapshots_output.resources | selectattr('spec.applicationRef', 'defined') | selectattr('spec.applicationRef', 'equalto', application_name)
-      | list }}"
+    filtered_snapshots: >-
+      {{ snapshots_output.resources
+         | selectattr('spec.applicationRef', 'defined')
+         | selectattr('spec.applicationRef', 'equalto', application_name)
+         | list }}
   when:
     - application_name is defined and application_name != ""
     - snapshots_output is defined
@@ -31,7 +37,7 @@
     - tp_view_snapshots
     - tp_create_snapshotinplacerestore
 
-- name: Display snapshots created for the application {{ application_name | default('') }} in {{ vm_namespace | default('') }} namespace
+- name: Display snapshots created for application/namespace - {{ application_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   ansible.builtin.debug:
     msg: "{{ filtered_snapshots | map(attribute='metadata.name') | list }}"
   when:
@@ -55,13 +61,14 @@
 
 # If your VMs have been corrupted or accidentally deleted, you can restore them to the original namespace using the snapshot created by the snapshot schedule.
 # Note: Ensure that the VMs and their associated resources are deleted from the original namespace before running the restore tasks here.
-# Users can choose to delete the VMs and their associated resources manually to simulate corruption or accidental deletion. For manual deletion, you can use the commands below:
+# Users can choose to delete the VMs and their associated resources manually to simulate corruption or accidental deletion.
+# For manual deletion, you can use the commands below:
 # oc delete vm <vm-name> -n <vm-namespace>
 # oc delete pvc <pvc-name> -n <vm-namespace>
 # Repeat the above commands for all VMs and their associated PVCs listed in the vm_list and pvc_list variables respectively under vars/trident_protect_main.yml
 
 # OR you can use the below tasks to automate the deletion of VMs and their associated resources.
-- name: Delete specific VMs in {{ vm_namespace | default('') }} namespace to simulate corruption or accidental deletion
+- name: Delete specific VMs to simulate corruption or accidental deletion in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: absent
     host: "{{ oc_api_url }}"
@@ -79,7 +86,7 @@
     - tp_delete_vms_and_pvcs
     - tp_create_snapshotinplacerestore
 
-- name: Delete specific PVCs in {{ vm_namespace | default('') }} namespace to simulate corruption or accidental deletion
+- name: Delete specific PVCs to simulate corruption or accidental deletion in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: absent
     host: "{{ oc_api_url }}"
@@ -98,7 +105,7 @@
     - tp_create_snapshotinplacerestore
 
 # Verify that the VMs and their associated resources have been deleted from the original namespace
-- name: Verify that the VMs have been deleted from {{ vm_namespace | default('') }} namespace
+- name: Verify that the VMs have been deleted from namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -116,7 +123,7 @@
     - tp_verify_vms_and_pvcs_deletion
     - tp_create_snapshotinplacerestore
 
-- name: Verify that the PVCs have been deleted from {{ vm_namespace | default('') }} namespace
+- name: Verify that the PVCs have been deleted from namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -134,7 +141,7 @@
     - tp_verify_vms_and_pvcs_deletion
     - tp_create_snapshotinplacerestore
 
-- name: Display message if no VMs and PVCs with label '{{ vm_label | default('') }}' found in {{ vm_namespace | default('') }} namespace
+- name: Display message if no VMs and PVCs with given label found in namespace - {{ vm_label | default('') ~ ' / ' ~ vm_namespace | default('') }}
   ansible.builtin.debug:
     msg: No VMs and PVCs with label '{{ vm_label | default('') }}' found in {{ vm_namespace | default('') }} namespace. Proceeding with restoration.
   when:
@@ -148,7 +155,7 @@
     - tp_verify_vms_and_pvcs_deletion
     - tp_create_snapshotinplacerestore
 
-- name: Display message if VMs or PVCs with label '{{ vm_label | default('') }}' still exist in {{ vm_namespace | default('') }} namespace
+- name: Display message if VMs or PVCs with given label still exist in namespace - {{ vm_label | default('') ~ ' / ' ~ vm_namespace | default('') }}
   ansible.builtin.debug:
     msg: Deletion verification failed! Found {{ vm_deletion_check.resources | length }} VM(s) and {{ pvc_deletion_check.resources | length }} PVC(s) with label
       '{{ vm_label | default('') }}' still remaining in {{ vm_namespace | default('') }} namespace. Please delete them before proceeding with restoration.
@@ -169,7 +176,7 @@
     - tp_create_snapshotinplacerestore
 
 # Get the latest snapshot for restoration
-- name: Get the latest snapshot for application {{ application_name | default('') }} in {{ vm_namespace | default('') }} namespace
+- name: Get the latest snapshot for application/namespace - {{ application_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   ansible.builtin.set_fact:
     latest_snapshot: "{{ filtered_snapshots | sort(attribute='metadata.creationTimestamp', reverse=true) | first }}"
   when:
@@ -208,7 +215,11 @@
 
 - name: Fail if snapshot is empty (no volume snapshots)
   ansible.builtin.fail:
-    msg: Cannot proceed with restoration! Snapshot '{{ latest_snapshot.metadata.name }}' is empty (no volume snapshots found). This means no VMs with label '{{ vm_label | default('') }}' existed when the snapshot was taken. Please ensure VMs have the correct labels and wait for a new snapshot to be created.
+    msg: >-
+      Cannot proceed with restoration! Snapshot '{{ latest_snapshot.metadata.name }}' is empty
+      (no volume snapshots found). This means no VMs with label '{{ vm_label | default('') }}'
+      existed when the snapshot was taken. Please ensure VMs have the correct labels and wait
+      for a new snapshot to be created.
   when:
     - filtered_snapshots is defined and filtered_snapshots | length > 0
     - latest_snapshot is defined
@@ -218,7 +229,7 @@
     - tp_create_snapshotinplacerestore
 
 # Create a SnapshotInplaceRestore object to restore VMs to the original namespace using the latest snapshot's appArchivePath
-- name: Create a SnapshotInplaceRestore object to restore VMs to {{ vm_namespace | default('') }} namespace using appArchivePath
+- name: Create a SnapshotInplaceRestore object using appArchivePath to restore VMs to namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -267,7 +278,7 @@
     - tp_wait_for_snapshotinplacerestore_completion
 
 # Verify that the SnapshotInplaceRestore object was created successfully
-- name: Get SnapshotInplaceRestore objects in {{ vm_namespace | default('') }} namespace
+- name: Get SnapshotInplaceRestore objects in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -295,13 +306,14 @@
   tags:
     - tp_verify_snapshotinplacerestore
 
-# Note: After the restore is complete, you can verify that the VMs and their associated resources have been restored to the original namespace by checking the status of the VMs and their PVCs using the commands below:
+# Note: After the restore is complete, you can verify that the VMs and their associated resources have been restored to the
+# original namespace by checking the status of the VMs and their PVCs using the commands below:
 # oc get vm -n <vm-namespace>
 # oc get pvc -n <vm-namespace>
 # Repeat the above commands for all VMs and their associated PVCs listed in the vm_list and pvc_list variables respectively under vars/trident_protect_main.yml
 
 # Verify that the VMs and their associated resources have been restored to the original namespace
-- name: Verify that the VMs have been restored to {{ vm_namespace | default('') }} namespace
+- name: Verify that the VMs have been restored to namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -319,7 +331,7 @@
     - tp_verify_snapshotinplacerestore_vms
     - tp_verify_snapshotinplacerestore_all
 
-- name: Verify that the PVCs have been restored to {{ vm_namespace | default('') }} namespace
+- name: Verify that the PVCs have been restored to namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -337,7 +349,7 @@
     - tp_verify_snapshotinplacerestore_pvcs
     - tp_verify_snapshotinplacerestore_all
 
-- name: Display restored VMs in {{ vm_namespace | default('') }} namespace
+- name: Display restored VMs in namespace - {{ vm_namespace | default('') }}
   ansible.builtin.debug:
     msg: "Restored VM: {{ item }}"
   loop: "{{ restored_vms_info.resources | map(attribute='metadata.name') | list }}"
@@ -349,7 +361,7 @@
     - tp_verify_snapshotinplacerestore_vms
     - tp_verify_snapshotinplacerestore_all
 
-- name: Display restored PVCs in {{ vm_namespace | default('') }} namespace
+- name: Display restored PVCs in namespace - {{ vm_namespace | default('') }}
   ansible.builtin.debug:
     msg: "Restored PVC: {{ item }}"
   loop: "{{ restored_pvcs_info.resources | map(attribute='metadata.name') | list }}"
