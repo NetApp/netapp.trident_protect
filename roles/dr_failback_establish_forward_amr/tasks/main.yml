@@ -1,9 +1,10 @@
 ---
 # Ansible tasks to re-establish the AppMirrorRelationship (AMR) from original source cluster back to the original destination cluster.
-# This role should be executed AFTER the dr_failback_prepare_forward_amr role has been executed to ensure all pre-requisites are met to establish AMR b/w the original source and destination clusters.
+# This role should be executed AFTER the dr_failback_prepare_forward_amr role has been executed
+# to ensure all pre-requisites are met to establish AMR b/w the original source and destination clusters.
 
 # Prerequisites check - Verify that snapshots exist on the original source cluster before proceeding with AMR creation
-- name: Check for available snapshots for application {{ src_application_name }} in source namespace {{ dst_vm_namespace }} on the original source cluster
+- name: Check for available snapshots on the original source cluster for application/namespace - {{ src_application_name ~ ' / ' ~ dst_vm_namespace }}
   kubernetes.core.k8s_info:
     kind: Snapshot
     api_version: protect.trident.netapp.io/v1
@@ -20,8 +21,13 @@
 - name: Filter snapshots for source application {{ src_application_name }}
   ansible.builtin.set_fact:
     src_snapshots_check:
-      resources: "{{ src_snapshots_all.resources | selectattr('spec.applicationRef', 'defined') | selectattr('spec.applicationRef', 'equalto', src_application_name)
-        | selectattr('status.state', 'defined') | selectattr('status.state', 'equalto', 'Completed') | list }}"
+      resources: >-
+        {{ src_snapshots_all.resources
+           | selectattr('spec.applicationRef', 'defined')
+           | selectattr('spec.applicationRef', 'equalto', src_application_name)
+           | selectattr('status.state', 'defined')
+           | selectattr('status.state', 'equalto', 'Completed')
+           | list }}
   tags:
     - forward_amr_preflight
     - original_dst_amr_create
@@ -30,16 +36,26 @@
   ansible.builtin.assert:
     that:
       - src_snapshots_check.resources | length > 0
-    fail_msg: No Completed snapshots found for application '{{ src_application_name }}' in namespace {{ src_vm_namespace }}. Ensure snapshots are in Completed
+    fail_msg: >-
+      No Completed snapshots found for application '{{ src_application_name }}'
+      in namespace {{ src_vm_namespace }}. Ensure snapshots are in Completed
       state before proceeding with AMR configuration.
-    success_msg: Found {{ src_snapshots_check.resources | length }} Completed snapshot(s) for application '{{ src_application_name }}' in namespace {{ src_vm_namespace }}. Proceeding with AMR configuration in forward direction.
+    success_msg: >-
+      Found {{ src_snapshots_check.resources | length }} Completed snapshot(s)
+      for application '{{ src_application_name }}' in namespace {{ src_vm_namespace }}.
+      Proceeding with AMR configuration in forward direction.
   tags:
     - forward_amr_preflight
     - original_dst_amr_create
 
 - name: Display snapshot details for verification
   ansible.builtin.debug:
-    msg: "Snapshot: {{ item.metadata.name }} | State: {{ item.status.state | default('Unknown') }} | Created: {{ item.metadata.creationTimestamp | default('Unknown') }} | Completed: {{ item.status.completionTimestamp | default('In Progress') }} | AppVault: {{ item.status.appVaultRef | default('Unknown') }}"
+    msg: >-
+      Snapshot: {{ item.metadata.name }} |
+      State: {{ item.status.state | default('Unknown') }} |
+      Created: {{ item.metadata.creationTimestamp | default('Unknown') }} |
+      Completed: {{ item.status.completionTimestamp | default('In Progress') }} |
+      AppVault: {{ item.status.appVaultRef | default('Unknown') }}
   loop: "{{ src_snapshots_check.resources }}"
   when:
     - src_snapshots_check is defined
@@ -138,14 +154,14 @@
     - original_dst_amr_create
 
 # Display the AppMirrorRelationship details created on the original destination OpenShift cluster
-- name: Display AppMirrorRelationship information created in {{ dst_vm_namespace }} namespace on the original destination OpenShift cluster
+- name: Display AppMirrorRelationship information created on the original destination OpenShift cluster in namespace - {{ dst_vm_namespace }}
   ansible.builtin.debug:
     var: dst_appmirrorrelationship_info.resources[0]
   tags:
     - original_dst_amr_create
 
 # Wait for the AppMirrorRelationship to reach the Established state
-- name: Wait for AppMirrorRelationship {{ appmirrorrelationship_specs.name }} to reach Established state
+- name: Wait for AppMirrorRelationship to reach Established state - {{ appmirrorrelationship_specs.name }}
   kubernetes.core.k8s_info:
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
