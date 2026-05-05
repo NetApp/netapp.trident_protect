@@ -137,7 +137,7 @@
     - tp_verify_appvault
 
 # Check if VM namespace exists before labeling
-- name: Check if {{ vm_namespace | default('') }} namespace exists
+- name: Check if namespace exists - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -152,7 +152,7 @@
     - oc_label_vms_and_pvcs
 
 # Label VMs in a namespace
-- name: Label VMs in {{ vm_namespace | default('') }} namespace
+- name: Label VMs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -177,7 +177,7 @@
     - oc_label_vms
 
 # Label PVCs associated with VMs in a namespace
-- name: Label PVCs in {{ vm_namespace | default('') }} namespace
+- name: Label PVCs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -202,7 +202,7 @@
     - oc_label_pvcs
 
 # Verify that the VMs got the labels
-- name: Verify labels for VMs in {{ vm_namespace | default('') }} namespace
+- name: Verify labels for VMs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -221,7 +221,7 @@
     - oc_verify_vm_labels
 
 # Verify that the PVCs got the labels
-- name: Verify labels for PVCs in {{ vm_namespace | default('') }} namespace
+- name: Verify labels for PVCs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -264,7 +264,7 @@
     - oc_verify_pvc_labels
 
 # Create an application for specific VMs using the label selector
-- name: Create an application in {{ vm_namespace | default('') }} namespace for specific VMs using the label selector
+- name: Create an application using the label selector for specific VMs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
     state: present
     host: "{{ oc_api_url }}"
@@ -290,7 +290,7 @@
     - tp_create_application
 
 # Verify the newly created application in the specified namespace
-- name: Verify Application creation in {{ vm_namespace | default('') }} namespace
+- name: Verify Application creation in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
     host: "{{ oc_api_url }}"
     api_key: "{{ oc_api_token }}"
@@ -306,7 +306,7 @@
   tags:
     - tp_verify_application
 
-- name: Display Application details created in {{ vm_namespace | default('') }} namespace
+- name: Display Application details created in namespace - {{ vm_namespace | default('') }}
   ansible.builtin.debug:
     var: application_output.resources[0]
   when:
