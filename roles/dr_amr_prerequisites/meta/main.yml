@@ -3,7 +3,9 @@ galaxy_info:
   role_name: dr_amr_prerequisites
   namespace: netapp
   author: Kamini Singh
-  description: Set up prerequisites (secrets, AppVaults, Application, snapshots) on source and destination clusters for AppMirrorRelationship-based disaster recovery.
+  description: >-
+    Set up prerequisites (secrets, AppVaults, Application, snapshots) on source
+    and destination clusters for AppMirrorRelationship-based disaster recovery.
   company: NetApp
   license: Apache-2.0
   min_ansible_version: "2.16"
