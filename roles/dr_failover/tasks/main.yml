@@ -1,6 +1,7 @@
 ---
 # Ansible tasks for executing failover of replicated VMs to the destination OpenShift cluster using Trident protect.
-# This role should be executed AFTER the dr_amr_config role has been run and the AppMirrorRelationship (AMR) is in Established state with successful replication.
+# This role should be executed AFTER the dr_amr_config role has been run and the AppMirrorRelationship (AMR)
+# is in Established state with successful replication.
 # This role assumes that there is disaster on the source cluster and the replicated VMs need to be failed over to the destination cluster.
 #
 # IMPORTANT: During disaster simulation, this role will:
@@ -11,7 +12,8 @@
 # If the snapshot schedule continues running after VM deletion, it will create snapshots with no VMs,
 # and the AMR will use the latest (empty) snapshot, resulting in no VMs being restored on the destination cluster.
 
-# Disaster simulation - This is a placeholder task to simulate disaster on the source cluster. In a real scenario, this would be an actual disaster event (e.g., source VMs deleted).
+# Disaster simulation - This is a placeholder task to simulate disaster on the source cluster. In a real scenario,
+# this would be an actual disaster event (e.g., source VMs deleted).
 # Step 1: Delete/suspend snapshot schedules to prevent empty snapshots from being created after VM deletion
 - name: Check if Schedule exists for source VMs before disaster simulation
   kubernetes.core.k8s_info:
@@ -77,7 +79,7 @@
     - delete_snapshot_schedule
 
 # Step 2: Identify VMs to delete
-- name: Get list of VMs in source namespace {{ src_vm_namespace }} with label {{ src_vm_label }} before failover
+- name: Get list of VMs before failover in source namespace/label - {{ src_vm_namespace ~ ' / ' ~ src_vm_label }}
   kubernetes.core.k8s_info:
     kind: VirtualMachine
     api_version: kubevirt.io/v1
@@ -94,7 +96,7 @@
     - disaster_simulation
 
 # Step 3: Stop running VMs gracefully before deletion
-- name: Stop all running VMs in source namespace {{ src_vm_namespace }} with label {{ src_vm_label }} to simulate disaster
+- name: Stop all running VMs in source namespace to simulate disaster - {{ src_vm_namespace ~ ' / ' ~ src_vm_label }}
   kubernetes.core.k8s:
     kind: VirtualMachine
     api_version: kubevirt.io/v1
@@ -146,7 +148,7 @@
     - disaster_simulation
 
 # Step 4: Delete VMs to complete disaster simulation
-- name: Delete all VMs in source namespace {{ src_vm_namespace }} with label {{ src_vm_label }} to simulate disaster
+- name: Delete all VMs in source namespace to simulate disaster - {{ src_vm_namespace ~ ' / ' ~ src_vm_label }}
   kubernetes.core.k8s:
     kind: VirtualMachine
     api_version: kubevirt.io/v1
@@ -187,8 +189,9 @@
 # Step 5: Summary of disaster simulation
 - name: Display message when no VMs found for disaster simulation
   ansible.builtin.debug:
-    msg: "WARNING: No VMs found in namespace '{{ src_vm_namespace }}' with label '{{ src_vm_label }}'. Disaster simulation skipped. Verify that VMs exist and have
-      the correct label."
+    msg: >-
+      WARNING: No VMs found in namespace '{{ src_vm_namespace }}' with label '{{ src_vm_label }}'.
+      Disaster simulation skipped. Verify that VMs exist and have the correct label.
   when:
     - simulate_disaster | bool
     - src_vms_before_failover is defined
@@ -251,7 +254,8 @@
     - dr_failover_promote
 
 # Failover execution - This task will fail over the replicated VMs to the destination OpenShift cluster.
-# This procedure stops the replication relationship (AMR) and brings the VMs online on the destination cluster. The VMs will be in the same state as they were on the source cluster at the time of the last successful replication (last snapshot).
+# This procedure stops the replication relationship (AMR) and brings the VMs online on the destination cluster.
+# The VMs will be in the same state as they were on the source cluster at the time of the last successful replication (last snapshot).
 - name: Fail over replicated VMs to the destination OpenShift cluster by promoting the AppMirrorRelationship (AMR)
   kubernetes.core.k8s:
     state: present
@@ -305,7 +309,7 @@
     - dr_failover_promote
 
 # Wait for the AppMirrorRelationship to reach the Promoted state
-- name: Wait for AppMirrorRelationship {{ appmirrorrelationship_specs.name }} to reach Promoted state
+- name: Wait for AppMirrorRelationship to reach Promoted state - {{ appmirrorrelationship_specs.name }}
   kubernetes.core.k8s_info:
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
