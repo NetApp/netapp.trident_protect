@@ -3,3 +3,5 @@ profile: production
 
 exclude_paths:
   - scripts/
+
+# Test comment to run GitHub Actions workflows.
