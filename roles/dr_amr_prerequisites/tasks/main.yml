@@ -154,7 +154,7 @@
     - src_oc_label_vms_and_pvcs
     - src_application_create
 
-- name: Verify source VMs namespace {{ src_vm_namespace }} exists
+- name: Verify source VMs namespace exists - {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
     host: "{{ src_oc_api_url }}"
     api_key: "{{ src_oc_api_token }}"
@@ -171,9 +171,11 @@
     - src_application_create
     - dst_preflight
 
-# Label specific VMs and PVCs in source namespace for snapshot and replication purposes. This is required as Application CR uses label selector to select VMs and PVCs for replication.
-- name: Label VMs in source namespace {{ src_vm_namespace }} for which snapshot needs to be taken and replicated. This label is used in the Application CR to
-    select VMs for replication.
+# Label specific VMs and PVCs in source namespace for snapshot and replication purposes.
+# This is required as Application CR uses label selector to select VMs and PVCs for replication.
+- name: >-
+    Label VMs in source namespace for which snapshot needs to be taken and replicated.
+    This label is used in the Application CR to select VMs for replication - {{ src_vm_namespace }}
   kubernetes.core.k8s:
     state: present
     host: "{{ src_oc_api_url }}"
@@ -192,8 +194,9 @@
     - src_oc_label_vms_and_pvcs
     - src_oc_label_vms
 
-- name: Label PVCs in source namespace {{ src_vm_namespace }} for which snapshot needs to be taken and replicated. This label is used in the Application CR to
-    select PVCs for replication.
+- name: >-
+    Label PVCs in source namespace for which snapshot needs to be taken and replicated.
+    This label is used in the Application CR to select PVCs for replication - {{ src_vm_namespace }}
   kubernetes.core.k8s:
     state: present
     host: "{{ src_oc_api_url }}"
@@ -298,7 +301,7 @@
   tags:
     - src_application_verify
 
-- name: Display source Application CR details created in {{ src_vm_namespace }} namespace
+- name: Display source Application CR details created in namespace - {{ src_vm_namespace }}
   ansible.builtin.debug:
     var: src_application_info.resources[0]
   when: src_application_info.resources | length > 0
@@ -326,7 +329,7 @@
 
 # On the source OpenShift cluster, take a snapshot of the source application. This snapshot is used as the basis for replication on the destination cluster.
 # Note that here snapshot schedule is created for specific VMs in a namespace by using corresponding application.
-- name: Create a snapshot schedule for the source application {{ src_application_name }} on the source OpenShift cluster
+- name: Create a snapshot schedule on the source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
     state: present
     host: "{{ src_oc_api_url }}"
@@ -369,7 +372,7 @@
   tags:
     - src_snapshot_schedule_verify
 
-- name: Display source snapshot schedule details created in {{ src_vm_namespace }} namespace
+- name: Display source snapshot schedule details created in namespace - {{ src_vm_namespace }}
   ansible.builtin.debug:
     var: src_snapshot_schedule_info.resources[0]
   when:
@@ -393,8 +396,9 @@
     - src_preflight
     - src_on_demand_snapshot_create
 
-# On the source OpenShift cluster, take an on-demand snapshot of the source application. This snapshot is used as the basis for replication on the destination cluster.
-- name: Create an on-demand snapshot for the source application {{ src_application_name }} on the source OpenShift cluster
+# On the source OpenShift cluster, take an on-demand snapshot of the source application.
+# This snapshot is used as the basis for replication on the destination cluster.
+- name: Create an on-demand snapshot on the source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
     state: present
     host: "{{ src_oc_api_url }}"
@@ -430,7 +434,7 @@
   tags:
     - src_on_demand_snapshot_verify
 
-- name: Display source on-demand snapshot details created in {{ src_vm_namespace }} namespace
+- name: Display source on-demand snapshot details created in namespace - {{ src_vm_namespace }}
   ansible.builtin.debug:
     var: src_on_demand_snapshot_info.resources[0]
   when:
@@ -468,7 +472,7 @@
     - dst_appvault_create
 
 # On the destination OpenShift cluster, create a new namespace for destination VMs if it does not exist
-- name: Create destination namespace {{ dst_vm_namespace }} on the destination OpenShift cluster
+- name: Create destination namespace on the destination OpenShift cluster - {{ dst_vm_namespace }}
   kubernetes.core.k8s:
     state: present
     host: "{{ dst_oc_api_url }}"
