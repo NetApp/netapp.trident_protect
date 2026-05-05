@@ -1,9 +1,13 @@
 ---
-# Ansible tasks to promote the AppMirrorRelationship on the new destination cluster (original source cluster) to initiate the failback of VMs in a Disaster Recovery scenario using NetApp Trident Protect and SnapMirror.
-# This role should be executed AFTER the dr_reverse_resync_config role has been executed and the reverse resync is in Established state with healthy replication from destination to source cluster.
-# Make sure the original source cluster is ready to take over as primary again and execute any necessary cleanup tasks on the destination cluster before running this role.
+# Ansible tasks to promote the AppMirrorRelationship on the new destination cluster (original source cluster) to initiate the failback
+# of VMs in a Disaster Recovery scenario using NetApp Trident Protect and SnapMirror.
+# This role should be executed AFTER the dr_reverse_resync_config role has been executed and the reverse resync is in Established state
+# with healthy replication from destination to source cluster.
+# Make sure the original source cluster is ready to take over as primary again and execute any necessary cleanup tasks on the destination
+# cluster before running this role.
 
-# Disable protection schedules for the VM on the source (original destination) cluster to prevent any replication activities during the failback preparation process.
+# Disable protection schedules for the VM on the source (original destination) cluster to prevent any replication activities during the
+# failback preparation process.
 - name: Disable protection schedules for the VM on the source (original destination) cluster
   kubernetes.core.k8s:
     kind: Schedule
@@ -17,7 +21,8 @@
   tags:
     - disable_schedule
 
-# Verify that the protection schedules have been successfully disabled for the VM on the source (original destination) cluster before proceeding with any further failback preparation tasks.
+# Verify that the protection schedules have been successfully disabled for the VM on the source (original destination) cluster
+# before proceeding with any further failback preparation tasks.
 - name: Verify protection schedules are disabled for the VM on the source (original destination) cluster
   kubernetes.core.k8s_info:
     kind: Schedule
@@ -32,7 +37,8 @@
   tags:
     - disable_schedule
 
-# Create a shutdown snapshot on the source (original destination) cluster to capture the final state of the VM before failback. This snapshot will be used as the source for the failback process to restore the VM back to the original source cluster.
+# Create a shutdown snapshot on the source (original destination) cluster to capture the final state of the VM before failback.
+# This snapshot will be used as the source for the failback process to restore the VM back to the original source cluster.
 - name: Create a shutdown snapshot on the source (original destination) cluster for failback
   kubernetes.core.k8s:
     state: present
@@ -161,15 +167,16 @@
     - new_dst_amr_promote
 
 # Display the AppMirrorRelationship details promoted on the new destination OpenShift cluster (original source cluster)
-- name: Display AppMirrorRelationship information promoted in {{ src_vm_namespace }} namespace on the new destination OpenShift cluster (original source
-    cluster)
+- name: >-
+    Display AppMirrorRelationship information promoted on the new destination OpenShift cluster
+    (original source cluster) in namespace - {{ src_vm_namespace }}
   ansible.builtin.debug:
     var: new_dst_appmirrorrelationship_info.resources[0]
   tags:
     - new_dst_amr_promote
 
 # Wait for the AppMirrorRelationship to reach the Promoted state
-- name: Wait for AppMirrorRelationship {{ appmirrorrelationship_specs.name }} to reach Promoted state
+- name: Wait for AppMirrorRelationship to reach Promoted state - {{ appmirrorrelationship_specs.name }}
   kubernetes.core.k8s_info:
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
