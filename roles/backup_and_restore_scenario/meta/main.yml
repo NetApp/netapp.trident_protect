@@ -10,7 +10,7 @@ galaxy_info:
   galaxy_tags:
     - netapp
     - trident
-    - trident_protect
+    - tridentprotect
     - backup
     - restore
     - openshift
