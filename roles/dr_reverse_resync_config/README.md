@@ -51,10 +51,3 @@ playbook):
     - netapp.trident_protect.dr_reverse_resync_config
 ```
 
-## License
-
-Apache-2.0
-
-## Author Information
-
-NetApp - Kamini Singh

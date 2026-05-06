@@ -53,10 +53,3 @@ playbook):
     - netapp.trident_protect.create_snapshot_schedule
 ```
 
-## License
-
-Apache-2.0
-
-## Author Information
-
-NetApp - Kamini Singh

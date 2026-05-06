@@ -51,10 +51,3 @@ playbook):
     - netapp.trident_protect.dr_failback_establish_forward_amr
 ```
 
-## License
-
-Apache-2.0
-
-## Author Information
-
-NetApp - Kamini Singh
