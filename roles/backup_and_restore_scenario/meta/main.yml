@@ -11,6 +11,8 @@ galaxy_info:
     - netapp
     - trident
     - trident_protect
+    - backup
+    - restore
     - openshift
     - kubernetes
     - storage

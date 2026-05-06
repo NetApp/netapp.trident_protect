@@ -10,10 +10,13 @@ galaxy_info:
   galaxy_tags:
     - netapp
     - trident
+    - trident_protect
+    - appmirrorrelationship
+    - data_protection
     - openshift
     - kubernetes
     - storage
-    - kubevirt
+    - disaster_recovery
 
 dependencies: []
   # List your role dependencies here, one per line. Be sure to remove the '[]' above,
