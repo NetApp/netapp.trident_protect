@@ -50,10 +50,3 @@ playbook):
     - netapp.trident_protect.snapshot_and_restore_scenario
 ```
 
-## License
-
-Apache-2.0
-
-## Author Information
-
-NetApp - Kamini Singh

@@ -54,10 +54,3 @@ playbook):
     - netapp.trident_protect.trident_protect_common
 ```
 
-## License
-
-Apache-2.0
-
-## Author Information
-
-NetApp - Kamini Singh

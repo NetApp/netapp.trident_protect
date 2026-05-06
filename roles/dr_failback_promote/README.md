@@ -48,10 +48,3 @@ playbook):
     - netapp.trident_protect.dr_failback_promote
 ```
 
-## License
-
-Apache-2.0
-
-## Author Information
-
-NetApp - Kamini Singh
