@@ -50,6 +50,6 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
-    - netapp.trident_protect.create_snapshot_schedule
+    - create_snapshot_schedule
 ```
 

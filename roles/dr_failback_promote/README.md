@@ -45,6 +45,6 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
-    - netapp.trident_protect.dr_failback_promote
+    - dr_failback_promote
 ```
 
