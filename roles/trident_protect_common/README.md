@@ -3,7 +3,7 @@
 ## Overview
 
 The `trident_protect_common` role is part of the **NetApp Trident Protect Validated Content Collection**.
-Common Trident Protect tasks (Secret, AppVault, Application, labeling) shared by Backup/Restore and Snapshot/Restore scenarios.
+Common Trident Protect tasks (Secret, AppVault, Application, VM and PVC labeling) shared by Backup/Restore and Snapshot/Restore scenarios.
 
 ## Requirements
 
