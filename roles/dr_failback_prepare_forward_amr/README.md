@@ -5,6 +5,16 @@
 The `dr_failback_prepare_forward_amr` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Prepare the system to re-establish forward replication from the original primary to the destination cluster as part of the failback workflow.
 
+## Role Order / Prerequisites
+
+This role is **step 7** of the DR (AppMirrorRelationship) workflow and assumes
+[`dr_failback_promote`](../dr_failback_promote/README.md) has completed. See
+the
+[collection-level workflow overview](../../README.md#disaster-recovery-appmirrorrelationship-workflow)
+for the full ordered list of DR roles.
+
+Next step: [`dr_failback_establish_forward_amr`](../dr_failback_establish_forward_amr/README.md).
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.

@@ -5,6 +5,16 @@
 The `dr_reverse_resync_config` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Reverse resync the failed-over AppMirrorRelationship to re-establish replication from the new primary back to the original primary cluster.
 
+## Role Order / Prerequisites
+
+This role is **step 5** of the DR (AppMirrorRelationship) workflow and assumes
+[`dr_reverse_resync_prerequisites`](../dr_reverse_resync_prerequisites/README.md)
+has completed. See the
+[collection-level workflow overview](../../README.md#disaster-recovery-appmirrorrelationship-workflow)
+for the full ordered list of DR roles.
+
+Next step (begins failback): [`dr_failback_promote`](../dr_failback_promote/README.md).
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.

@@ -5,6 +5,16 @@
 The `dr_amr_config` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Create the AppMirrorRelationship (AMR) custom resource to establish replication of VMs between source and destination OpenShift clusters.
 
+## Role Order / Prerequisites
+
+This role is **step 2** of the DR (AppMirrorRelationship) workflow and assumes
+[`dr_amr_prerequisites`](../dr_amr_prerequisites/README.md) has been run on
+both clusters. See the
+[collection-level workflow overview](../../README.md#disaster-recovery-appmirrorrelationship-workflow)
+for the full ordered list of DR roles.
+
+Next step (only if a failover is exercised): [`dr_failover`](../dr_failover/README.md).
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.

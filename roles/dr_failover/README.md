@@ -5,6 +5,17 @@
 The `dr_failover` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Fail over the replicated application to the destination OpenShift cluster after a disaster on the source cluster.
 
+## Role Order / Prerequisites
+
+This role is **step 3** of the DR (AppMirrorRelationship) workflow and assumes
+[`dr_amr_prerequisites`](../dr_amr_prerequisites/README.md) and
+[`dr_amr_config`](../dr_amr_config/README.md) have already been run and
+replication is healthy. See the
+[collection-level workflow overview](../../README.md#disaster-recovery-appmirrorrelationship-workflow)
+for the full ordered list of DR roles.
+
+Next step: [`dr_reverse_resync_prerequisites`](../dr_reverse_resync_prerequisites/README.md).
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.

@@ -5,6 +5,14 @@
 The `dr_amr_prerequisites` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Set up prerequisites (secrets, AppVaults, Application, snapshots) on source and destination clusters for AppMirrorRelationship-based disaster recovery.
 
+## Role Order / Prerequisites
+
+This role is **step 1** of the DR (AppMirrorRelationship) workflow. See the
+[collection-level workflow overview](../../README.md#disaster-recovery-appmirrorrelationship-workflow)
+for the full ordered list of DR roles.
+
+Next step: [`dr_amr_config`](../dr_amr_config/README.md).
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.

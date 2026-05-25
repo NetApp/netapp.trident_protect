@@ -5,6 +5,23 @@
 The `snapshot_and_restore_scenario` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Restore VMs from the latest snapshot produced by a Trident Protect snapshot schedule using a SnapshotInplaceRestore.
 
+## Role Order / Prerequisites
+
+This role expects the AppVault and Application CR to already exist, and a
+Trident Protect `Schedule` to have produced at least one snapshot for
+`application_name`. Run the
+[`trident_protect_common`](../trident_protect_common/README.md) and
+[`create_snapshot_schedule`](../create_snapshot_schedule/README.md) roles
+first, then wait long enough for the schedule to take its first snapshot
+before running this role.
+
+Typical workflow:
+
+1. `trident_protect_common` – create Secret, AppVault, Application, and label VMs/PVCs.
+2. `create_snapshot_schedule` – create the periodic snapshot schedule.
+3. *(wait for at least one snapshot to be produced)*
+4. `snapshot_and_restore_scenario` – restore VMs from the latest snapshot.
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.
@@ -47,6 +64,8 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
-    - snapshot_and_restore_scenario
+    - trident_protect_common
+    - create_snapshot_schedule
+    - snapshot_and_restore_scenario   # run after the first snapshot exists
 ```
 

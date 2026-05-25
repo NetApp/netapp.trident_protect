@@ -5,6 +5,16 @@
 The `dr_failback_promote` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Promote the AppMirrorRelationship on the original source cluster to initiate failback of VMs.
 
+## Role Order / Prerequisites
+
+This role is **step 6** of the DR (AppMirrorRelationship) workflow and assumes
+[`dr_reverse_resync_config`](../dr_reverse_resync_config/README.md) has
+completed. See the
+[collection-level workflow overview](../../README.md#disaster-recovery-appmirrorrelationship-workflow)
+for the full ordered list of DR roles.
+
+Next step: [`dr_failback_prepare_forward_amr`](../dr_failback_prepare_forward_amr/README.md).
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.
