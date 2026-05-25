@@ -49,6 +49,61 @@ ansible-galaxy collection install netapp.trident_protect:==1.0.0
 
 See [using Ansible collections](https://docs.ansible.com/ansible/devel/user_guide/collections_using.html) for more details.
 
+## Role Execution Order / Workflows
+
+The collection ships several roles that are designed to be composed into
+end-to-end workflows. Each role's README documents its inputs in detail; the
+diagrams below show the order in which roles are typically run.
+
+### Common prerequisite
+
+The [`trident_protect_common`](roles/trident_protect_common/README.md) role
+creates the shared objects (Secret, AppVault, Application CR, VM/PVC labels)
+that the Backup/Restore and Snapshot/Restore scenarios depend on. Run it once
+per cluster before the scenario roles below.
+
+### Backup and Restore workflow
+
+1. [`trident_protect_common`](roles/trident_protect_common/README.md) — create Secret, AppVault, Application, label VMs/PVCs.
+2. [`backup_and_restore_scenario`](roles/backup_and_restore_scenario/README.md) — on-demand backup and restore.
+
+### Snapshot and Restore workflow
+
+1. [`trident_protect_common`](roles/trident_protect_common/README.md) — create Secret, AppVault, Application, label VMs/PVCs.
+2. [`create_snapshot_schedule`](roles/create_snapshot_schedule/README.md) — create the periodic snapshot `Schedule` CR.
+3. *(wait for the schedule to produce at least one snapshot)*
+4. [`snapshot_and_restore_scenario`](roles/snapshot_and_restore_scenario/README.md) — restore VMs from the latest snapshot.
+
+### Disaster Recovery (AppMirrorRelationship) workflow
+
+The DR roles are designed to be executed in sequence across the source and
+destination OpenShift clusters. The full lifecycle (replication → failover →
+reverse resync → failback) is:
+
+1. [`dr_amr_prerequisites`](roles/dr_amr_prerequisites/README.md) — set up secrets, AppVaults, Application, and snapshots on source and destination clusters.
+2. [`dr_amr_config`](roles/dr_amr_config/README.md) — create the `AppMirrorRelationship` (AMR) to start replication.
+3. [`dr_failover`](roles/dr_failover/README.md) — fail over the replicated application to the destination cluster after a disaster on the source.
+4. [`dr_reverse_resync_prerequisites`](roles/dr_reverse_resync_prerequisites/README.md) — validate/prepare the new source (original destination) cluster for reverse resync.
+5. [`dr_reverse_resync_config`](roles/dr_reverse_resync_config/README.md) — reverse resync the AMR so replication flows back toward the original primary.
+6. [`dr_failback_promote`](roles/dr_failback_promote/README.md) — promote the AMR on the original source to initiate failback of VMs.
+7. [`dr_failback_prepare_forward_amr`](roles/dr_failback_prepare_forward_amr/README.md) — prepare to re-establish forward replication from the original primary.
+8. [`dr_failback_establish_forward_amr`](roles/dr_failback_establish_forward_amr/README.md) — re-establish the forward AMR from original source to destination, completing failback.
+
+```mermaid
+flowchart LR
+    A[dr_amr_prerequisites] --> B[dr_amr_config]
+    B --> C[dr_failover]
+    C --> D[dr_reverse_resync_prerequisites]
+    D --> E[dr_reverse_resync_config]
+    E --> F[dr_failback_promote]
+    F --> G[dr_failback_prepare_forward_amr]
+    G --> H[dr_failback_establish_forward_amr]
+```
+
+> Note: Steps 3–8 are only required if a disaster (or planned failover) and
+> subsequent failback are exercised. Steady-state replication only needs
+> steps 1–2.
+
 ## Release notes
 
 See the [changelog](https://github.com/NetApp/netapp.trident_protect/tree/main/changelogs/changelog.rst).

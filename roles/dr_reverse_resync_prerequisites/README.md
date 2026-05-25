@@ -5,6 +5,15 @@
 The `dr_reverse_resync_prerequisites` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Validate and set up prerequisites on the new source (original destination) cluster to reverse resync the failed-over relationship.
 
+## Role Order / Prerequisites
+
+This role is **step 4** of the DR (AppMirrorRelationship) workflow and assumes
+[`dr_failover`](../dr_failover/README.md) has completed. See the
+[collection-level workflow overview](../../README.md#disaster-recovery-appmirrorrelationship-workflow)
+for the full ordered list of DR roles.
+
+Next step: [`dr_reverse_resync_config`](../dr_reverse_resync_config/README.md).
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.
