@@ -5,6 +5,18 @@
 The `backup_and_restore_scenario` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Perform on-demand backup and restore of OpenShift Virtualization VMs using Trident Protect.
 
+## Role Order / Prerequisites
+
+This role expects the AppVault, Application CR, and VM/PVC labels to already
+exist on the cluster. Run the
+[`trident_protect_common`](../trident_protect_common/README.md) role first to
+create them.
+
+Typical workflow:
+
+1. `trident_protect_common` – create Secret, AppVault, Application, and label VMs/PVCs.
+2. `backup_and_restore_scenario` – perform on-demand backup and restore.
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.
@@ -49,6 +61,7 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
+    - trident_protect_common
     - backup_and_restore_scenario
 ```
 

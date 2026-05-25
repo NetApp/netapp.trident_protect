@@ -5,6 +5,18 @@
 The `create_snapshot_schedule` role is part of the **NetApp Trident Protect Validated Content Collection**.
 Create a Trident Protect Schedule resource for periodic snapshots of an Application (set of VMs).
 
+## Role Order / Prerequisites
+
+This role expects the AppVault and Application CR referenced by
+`appvault_name` / `application_name` to already exist on the cluster. Run the
+[`trident_protect_common`](../trident_protect_common/README.md) role first to
+create them.
+
+Typical workflow:
+
+1. `trident_protect_common` – create Secret, AppVault, Application, and label VMs/PVCs.
+2. `create_snapshot_schedule` – create the periodic snapshot Schedule CR.
+
 ## Requirements
 
 * Ansible v2.16.0 or newer.
@@ -50,6 +62,16 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
+    - trident_protect_common
     - create_snapshot_schedule
 ```
+
+## Related Roles
+
+- [`trident_protect_common`](../trident_protect_common/README.md) – prerequisite
+  that creates the AppVault and Application CR referenced by this role.
+- [`snapshot_and_restore_scenario`](../snapshot_and_restore_scenario/README.md) –
+  after the schedule has produced at least one snapshot, use this role to
+  restore VMs from the most recent snapshot.
+
 
