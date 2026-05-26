@@ -89,6 +89,7 @@ reverse resync → failback) is:
 7. [`dr_failback_prepare_forward_amr`](roles/dr_failback_prepare_forward_amr/README.md) — prepare to re-establish forward replication from the original primary.
 8. [`dr_failback_establish_forward_amr`](roles/dr_failback_establish_forward_amr/README.md) — re-establish the forward AMR from original source to destination, completing failback.
 
+
 > Note: Steps 3–8 are only required if a disaster (or planned failover) and
 > subsequent failback are exercised. Steady-state replication only needs
 > steps 1–2.
@@ -103,7 +104,6 @@ flowchart LR
     F --> G[dr_failback_prepare_forward_amr]
     G --> H[dr_failback_establish_forward_amr]
 ```
-
 
 ## Release notes
 
