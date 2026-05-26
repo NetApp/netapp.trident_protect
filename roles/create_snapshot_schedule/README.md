@@ -3,7 +3,7 @@
 ## Overview
 
 The `create_snapshot_schedule` role is part of the **NetApp Trident Protect Validated Content Collection**.
-Create a Trident Protect Schedule resource for periodic snapshots of an Application (set of VMs).
+This role creates a Trident Protect Schedule resource for periodic snapshots of an Application (set of VMs).
 
 ## Role Order / Prerequisites
 
@@ -62,7 +62,6 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
-    - trident_protect_common
     - create_snapshot_schedule
 ```
 
