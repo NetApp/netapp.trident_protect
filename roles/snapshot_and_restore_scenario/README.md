@@ -3,7 +3,7 @@
 ## Overview
 
 The `snapshot_and_restore_scenario` role is part of the **NetApp Trident Protect Validated Content Collection**.
-Restore VMs from the latest snapshot produced by a Trident Protect snapshot schedule using a SnapshotInplaceRestore.
+This role restores VMs from the latest snapshot produced by a Trident Protect snapshot schedule using a SnapshotInplaceRestore.
 
 ## Role Order / Prerequisites
 
@@ -64,8 +64,6 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
-    - trident_protect_common
-    - create_snapshot_schedule
     - snapshot_and_restore_scenario   # run after the first snapshot exists
 ```
 
