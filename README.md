@@ -2,13 +2,13 @@
 
 # Ansible Validated Content Collection for NetApp Trident Protect
 
-This collection includes a variety of validated Ansible Roles to automate and manage Day-2 use cases involving NetApp Trident Protect in a Red Hat OpenShift Virtualization environment. It covers common application data management workflows such as Backup and Restore, Snapshot scheduling and Restore, and Disaster Recovery (SnapMirror Replication, Failover, Failback, and Reverse Resync).
+This collection includes a variety of validated Ansible Roles to automate and manage Day-2 use cases involving NetApp Trident Protect in a Red Hat OpenShift Virtualization environment. It covers common application data management workflows such as Backup and Restore, Snapshot scheduling and Restore, and Disaster Recovery (SnapMirror Replication, Failover, Reverse Resync, and Failback).
 
 ## Dependencies
 
 This collection uses the [kubernetes.core](https://galaxy.ansible.com/ui/repo/published/kubernetes/core)
-certified Ansible collection to manage Kubernetes objects such as Applications,
-AppVaults, Backups, Snapshots, SnapshotSchedules, and Replication resources via
+certified Ansible collection to manage Kubernetes objects such as AppVaults,
+Applications, Backups, SnapshotSchedules, Snapshots, and Replication resources via
 the NetApp Trident Protect custom resources.
 
 ## Tested with Ansible
@@ -53,7 +53,7 @@ See [using Ansible collections](https://docs.ansible.com/ansible/devel/user_guid
 
 The collection ships several roles that are designed to be composed into
 end-to-end workflows. Each role's README documents its inputs in detail; the
-diagrams below show the order in which roles are typically run.
+workflows/ diagrams below show the order in which roles are typically run.
 
 ### Common prerequisite
 
@@ -82,12 +82,16 @@ reverse resync → failback) is:
 
 1. [`dr_amr_prerequisites`](roles/dr_amr_prerequisites/README.md) — set up secrets, AppVaults, Application, and snapshots on source and destination clusters.
 2. [`dr_amr_config`](roles/dr_amr_config/README.md) — create the `AppMirrorRelationship` (AMR) to start replication.
-3. [`dr_failover`](roles/dr_failover/README.md) — fail over the replicated application to the destination cluster after a disaster on the source.
+3. [`dr_failover`](roles/dr_failover/README.md) — fail over the replicated application/ VM to the destination cluster after a disaster on the source.
 4. [`dr_reverse_resync_prerequisites`](roles/dr_reverse_resync_prerequisites/README.md) — validate/prepare the new source (original destination) cluster for reverse resync.
 5. [`dr_reverse_resync_config`](roles/dr_reverse_resync_config/README.md) — reverse resync the AMR so replication flows back toward the original primary.
 6. [`dr_failback_promote`](roles/dr_failback_promote/README.md) — promote the AMR on the original source to initiate failback of VMs.
 7. [`dr_failback_prepare_forward_amr`](roles/dr_failback_prepare_forward_amr/README.md) — prepare to re-establish forward replication from the original primary.
 8. [`dr_failback_establish_forward_amr`](roles/dr_failback_establish_forward_amr/README.md) — re-establish the forward AMR from original source to destination, completing failback.
+
+> Note: Steps 3–8 are only required if a disaster (or planned failover) and
+> subsequent failback are exercised. Steady-state replication only needs
+> steps 1–2.
 
 ```mermaid
 flowchart LR
@@ -100,9 +104,6 @@ flowchart LR
     G --> H[dr_failback_establish_forward_amr]
 ```
 
-> Note: Steps 3–8 are only required if a disaster (or planned failover) and
-> subsequent failback are exercised. Steady-state replication only needs
-> steps 1–2.
 
 ## Release notes
 
