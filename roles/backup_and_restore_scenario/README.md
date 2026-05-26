@@ -3,7 +3,7 @@
 ## Overview
 
 The `backup_and_restore_scenario` role is part of the **NetApp Trident Protect Validated Content Collection**.
-Perform on-demand backup and restore of OpenShift Virtualization VMs using Trident Protect.
+This role performs on-demand backup and restore of OpenShift Virtualization VMs using Trident Protect.
 
 ## Role Order / Prerequisites
 
@@ -61,7 +61,6 @@ playbook):
     oc_api_token: "{{ OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
-    - trident_protect_common
     - backup_and_restore_scenario
 ```
 
