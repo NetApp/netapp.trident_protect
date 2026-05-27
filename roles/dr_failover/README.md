@@ -1,9 +1,9 @@
-# Dr Failover Role
+# DR Failover Role
 
 ## Overview
 
 The `dr_failover` role is part of the **NetApp Trident Protect Validated Content Collection**.
-Fail over the replicated application to the destination OpenShift cluster after a disaster on the source cluster.
+Fail over the replicated applications/VMs to the destination OpenShift cluster after a disaster on the source cluster.
 
 ## Role Order / Prerequisites
 
