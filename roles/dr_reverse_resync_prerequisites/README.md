@@ -1,4 +1,4 @@
-# Dr Reverse Resync Prerequisites Role
+# DR Reverse Resync Prerequisites Role
 
 ## Overview
 
