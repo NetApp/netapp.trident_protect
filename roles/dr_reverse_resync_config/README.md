@@ -1,9 +1,9 @@
-# Dr Reverse Resync Config Role
+# DR Reverse Resync Config Role
 
 ## Overview
 
 The `dr_reverse_resync_config` role is part of the **NetApp Trident Protect Validated Content Collection**.
-Reverse resync the failed-over AppMirrorRelationship to re-establish replication from the new primary back to the original primary cluster.
+Reverse resync the failed-over AppMirrorRelationship to re-establish replication from the new primary (original destination) back to the new destination (original source) cluster.
 
 ## Role Order / Prerequisites
 
