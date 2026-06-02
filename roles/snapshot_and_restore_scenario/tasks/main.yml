@@ -7,12 +7,31 @@
 # before running the restore tasks here.
 # Note: Ensure that the snapshot schedule has created at least one snapshot before running the restore tasks here.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - oc_api_url
+    - oc_api_token
+    - appvault_name
+    - application_name
+    - vm_namespace
+    - snapshotinplacerestore_name
+
+# Define anchor for OpenShift/Kubernetes API login info
+- name: Define anchor for OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    k8s_auth: &k8s_auth
+      host: "{{ oc_api_url | default(omit) }}"
+      api_key: "{{ oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # View the snapshots created by the snapshot schedule
 - name: Get snapshots created by the snapshot schedule in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     kind: Snapshot
     namespace: "{{ vm_namespace | default('') }}"
@@ -70,10 +89,8 @@
 # OR you can use the below tasks to automate the deletion of VMs and their associated resources.
 - name: Delete specific VMs to simulate corruption or accidental deletion in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: absent
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     api_version: kubevirt.io/v1
     namespace: "{{ vm_namespace | default('') }}"
     kind: VirtualMachine
@@ -88,10 +105,8 @@
 
 - name: Delete specific PVCs to simulate corruption or accidental deletion in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: absent
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     api_version: v1
     namespace: "{{ vm_namespace | default('') }}"
     kind: PersistentVolumeClaim
@@ -107,9 +122,7 @@
 # Verify that the VMs and their associated resources have been deleted from the original namespace
 - name: Verify that the VMs have been deleted from namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: kubevirt.io/v1
     kind: VirtualMachine
     namespace: "{{ vm_namespace | default('') }}"
@@ -125,9 +138,7 @@
 
 - name: Verify that the PVCs have been deleted from namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: v1
     kind: PersistentVolumeClaim
     namespace: "{{ vm_namespace | default('') }}"
@@ -231,10 +242,8 @@
 # Create a SnapshotInplaceRestore object to restore VMs to the original namespace using the latest snapshot's appArchivePath
 - name: Create a SnapshotInplaceRestore object using appArchivePath to restore VMs to namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: "{{ vm_namespace | default('') }}"
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -256,9 +265,7 @@
 # Wait for the restore to complete
 - name: Wait for the restore to complete
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     namespace: "{{ vm_namespace | default('') }}"
     kind: SnapshotInplaceRestore
@@ -280,9 +287,7 @@
 # Verify that the SnapshotInplaceRestore object was created successfully
 - name: Get SnapshotInplaceRestore objects in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     kind: SnapshotInplaceRestore
     namespace: "{{ vm_namespace | default('') }}"
@@ -315,9 +320,7 @@
 # Verify that the VMs and their associated resources have been restored to the original namespace
 - name: Verify that the VMs have been restored to namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: kubevirt.io/v1
     kind: VirtualMachine
     namespace: "{{ vm_namespace | default('') }}"
@@ -333,9 +336,7 @@
 
 - name: Verify that the PVCs have been restored to namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: v1
     kind: PersistentVolumeClaim
     namespace: "{{ vm_namespace | default('') }}"

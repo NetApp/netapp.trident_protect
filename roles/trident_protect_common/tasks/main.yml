@@ -1,12 +1,27 @@
 ---
 # Trident protect common tasks for both Backup/Restore and Snapshot/Restore scenarios
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - oc_api_url
+    - oc_api_token
+
+# Define anchor for OpenShift/Kubernetes API login info
+- name: Define anchor for OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    k8s_auth: &k8s_auth
+      host: "{{ oc_api_url | default(omit) }}"
+      api_key: "{{ oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Verify Trident Protect installation
 - name: Check if trident-protect namespace exists
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     kind: Namespace
     name: trident-protect
   register: tp_namespace_check
@@ -16,9 +31,7 @@
 
 - name: Verify Trident Protect is installed (check controller manager deployment)
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     kind: Deployment
     namespace: trident-protect
     name: trident-protect-controller-manager
@@ -30,10 +43,8 @@
 # Create Kubernetes Secret to store ONTAP S3 credentials
 - name: Create Kubernetes Secret to store ONTAP S3 credentials
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: trident-protect # Must be in the Trident protect namespace
     definition:
       apiVersion: v1
@@ -54,9 +65,7 @@
 # Verify the newly created Secret in Trident protect namespace
 - name: Verify ONTAP S3 Secret creation in trident-protect namespace
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     kind: Secret
     namespace: trident-protect
     name: "{{ appvault_secret_name | default('') }}"
@@ -77,10 +86,8 @@
 # Create Trident protect AppVault for ONTAP S3
 - name: Create Trident protect AppVault for ONTAP S3
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: trident-protect # Must be in the Trident protect namespace
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -115,9 +122,7 @@
 # Verify the newly created AppVault in Trident protect namespace
 - name: Verify AppVault creation in trident-protect namespace
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     kind: AppVault
     api_version: protect.trident.netapp.io/v1
     namespace: trident-protect
@@ -139,9 +144,7 @@
 # Check if VM namespace exists before labeling
 - name: Check if namespace exists - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     kind: Namespace
     name: "{{ vm_namespace | default('') }}"
   register: vm_namespace_check
@@ -154,10 +157,8 @@
 # Label VMs in a namespace
 - name: Label VMs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: "{{ vm_namespace | default('') }}"
     api_version: kubevirt.io/v1
     kind: VirtualMachine
@@ -179,10 +180,8 @@
 # Label PVCs associated with VMs in a namespace
 - name: Label PVCs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: "{{ vm_namespace | default('') }}"
     api_version: v1
     kind: PersistentVolumeClaim
@@ -204,9 +203,7 @@
 # Verify that the VMs got the labels
 - name: Verify labels for VMs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: kubevirt.io/v1
     kind: VirtualMachine
     namespace: "{{ vm_namespace | default('') }}"
@@ -223,9 +220,7 @@
 # Verify that the PVCs got the labels
 - name: Verify labels for PVCs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: v1
     kind: PersistentVolumeClaim
     namespace: "{{ vm_namespace | default('') }}"
@@ -266,10 +261,8 @@
 # Create an application for specific VMs using the label selector
 - name: Create an application using the label selector for specific VMs in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: "{{ vm_namespace | default('') }}"
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -292,9 +285,7 @@
 # Verify the newly created application in the specified namespace
 - name: Verify Application creation in namespace - {{ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     kind: Application
     namespace: "{{ vm_namespace | default('') }}"

@@ -3,15 +3,40 @@
 # This role should be executed AFTER the dr_amr_prerequisites role has been run and snapshots are available on the source cluster.
 # For scheduled snapshots, ensure the schedule has created at least one snapshot before running this role.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
+    - dst_oc_api_url
+    - dst_oc_api_token
+
+# Define anchor for source OpenShift/Kubernetes API login info
+- name: Define anchor for source OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    src_k8s_auth: &src_k8s_auth
+      host: "{{ src_oc_api_url | default(omit) }}"
+      api_key: "{{ src_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
+# Define anchor for destination OpenShift/Kubernetes API login info
+- name: Define anchor for destination OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    dst_k8s_auth: &dst_k8s_auth
+      host: "{{ dst_oc_api_url | default(omit) }}"
+      api_key: "{{ dst_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Prerequisites check - Verify that snapshots exist on the source cluster before proceeding with AMR creation
 - name: Check for available snapshots for source application/namespace - {{ src_application_name ~ ' / ' ~ src_vm_namespace }}
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Snapshot
     api_version: protect.trident.netapp.io/v1
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_snapshots_all
   changed_when: false
   tags:
@@ -89,13 +114,11 @@
 # Fetch the source application UID from the source OpenShift cluster
 - name: Get source application UID from the source OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Application
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_application_name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_application_info
   changed_when: false
   failed_when: src_application_info.resources | length == 0
@@ -114,10 +137,8 @@
 # On the destination OpenShift cluster, create an AppMirrorRelationship CR to replicate VMs from source to destination
 - name: Create an AppMirrorRelationship CR on destination OpenShift cluster to replicate VMs from source to destination
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     wait: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -144,13 +165,11 @@
 # View the AppMirrorRelationship details on the destination OpenShift cluster
 - name: Get AppMirrorRelationship details to verify creation on the destination OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_appmirrorrelationship_info
   changed_when: false
   failed_when: dst_appmirrorrelationship_info.resources | length == 0
@@ -167,13 +186,11 @@
 # Wait for the AppMirrorRelationship to reach the Established state
 - name: Wait for AppMirrorRelationship to reach Established state - {{ appmirrorrelationship_specs.name }}
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_amr_state
   until: >
     dst_amr_state.resources | length > 0 and

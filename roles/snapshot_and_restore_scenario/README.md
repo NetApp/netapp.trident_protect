@@ -36,17 +36,18 @@ The role does not ship opinionated defaults. The caller must provide the
 following variables (typically via `-e @your_vars.yml` or under `vars:` in the
 playbook):
 
-| Variable | Description |
-|----------|-------------|
-| `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. |
-| `oc_api_token` | Bearer token used to authenticate against the OpenShift API. |
-| `appvault_name` | AppVault used by the snapshot/restore. |
-| `application_name` | Application whose snapshots are restored. |
-| `vm_namespace` | Namespace where VMs are restored in place. |
-| `vm_list` | List of VM names that will be deleted before restore. |
-| `pvc_list` | List of PVC names that will be deleted before restore. |
-| `vm_label` | Label value used to filter VMs/PVCs during verification. |
-| `snapshotinplacerestore_name` | Name of the SnapshotInplaceRestore CR. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. | Required |
+| `oc_api_token` | Bearer token used to authenticate against the OpenShift API. | Required |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `appvault_name` | AppVault used by the snapshot/restore. | Required |
+| `application_name` | Application whose snapshots are restored. | Required |
+| `vm_namespace` | Namespace where VMs are restored in place. | Required |
+| `vm_list` | List of VM names that will be deleted before restore. | Required |
+| `pvc_list` | List of PVC names that will be deleted before restore. | Required |
+| `vm_label` | Label value used to filter VMs/PVCs during verification. | Required |
+| `snapshotinplacerestore_name` | Name of the SnapshotInplaceRestore CR. | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.

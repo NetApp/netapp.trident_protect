@@ -30,18 +30,19 @@ The role does not ship opinionated defaults. The caller must provide the
 following variables (typically via `-e @your_vars.yml` or under `vars:` in the
 playbook):
 
-| Variable | Description |
-|----------|-------------|
-| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). |
-| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). |
-| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). |
-| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). |
-| `appmirrorrelationship_specs` | AMR specs (uses `name`). |
-| `src_vm_namespace` | Source namespace (used during simulated disaster). |
-| `dst_vm_namespace` | Destination namespace where VMs are failed over. |
-| `src_vm_list` | List of source VMs. |
-| `src_vm_label` | Label used to filter source VMs/PVCs. |
-| `simulate_disaster` | Set to `true` to stop and delete source VMs to simulate a disaster. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). | Required |
+| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). | Required |
+| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
+| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `appmirrorrelationship_specs` | AMR specs (uses `name`). | Required |
+| `src_vm_namespace` | Source namespace (used during simulated disaster). | Required |
+| `dst_vm_namespace` | Destination namespace where VMs are failed over. | Required |
+| `src_vm_list` | List of source VMs. | Required |
+| `src_vm_label` | Label used to filter source VMs/PVCs. | Required |
+| `simulate_disaster` | Set to `true` to stop and delete source VMs to simulate a disaster. | `false` |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.
@@ -55,8 +56,8 @@ playbook):
   gather_facts: false
   connection: local
   vars:
-    oc_api_url: "https://api.aa02-ocp.example.com:6443"
-    oc_api_token: "{{ OC_API_TOKEN }}"
+    src_oc_api_url: "https://api.src.example.openshift.com:6443"
+    src_oc_api_token: "{{ SRC_OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
     - dr_failover

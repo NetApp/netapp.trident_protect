@@ -1,15 +1,36 @@
 ---
 # Ansible tasks to create Snapshot schedules for VMs in OpenShift Virtualization using Trident protect
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - oc_api_url
+    - oc_api_token
+    - snapshot_schedule_name
+    - application_name
+    - appvault_name
+    - vm_namespace
+    - snapshot_granularity
+    - snapshot_retention_count
+
+# Define anchor for OpenShift/Kubernetes API login info
+- name: Define anchor for OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    k8s_auth: &k8s_auth
+      host: "{{ oc_api_url | default(omit) }}"
+      api_key: "{{ oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Create snapshot schedule for specific VMs in a namespace by using corresponding application
 - name: >-
     Create snapshot schedule for specific VMs by using corresponding application -
     {{ application_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: "{{ vm_namespace | default('') }}"
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -40,13 +61,11 @@
 # Verify the newly created snapshot schedule is in place
 - name: Get snapshot schedule from namespace - {{ snapshot_schedule_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   kubernetes.core.k8s_info:
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     kind: Schedule
     name: "{{ snapshot_schedule_name | default('') }}"
     namespace: "{{ vm_namespace | default('') }}"
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
   register: schedule_output
   when:
     - snapshot_schedule_name is defined and snapshot_schedule_name != ""

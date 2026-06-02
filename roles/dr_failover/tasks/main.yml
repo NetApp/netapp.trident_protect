@@ -12,18 +12,43 @@
 # If the snapshot schedule continues running after VM deletion, it will create snapshots with no VMs,
 # and the AMR will use the latest (empty) snapshot, resulting in no VMs being restored on the destination cluster.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
+    - dst_oc_api_url
+    - dst_oc_api_token
+
+# Define anchor for source OpenShift/Kubernetes API login info
+- name: Define anchor for source OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    src_k8s_auth: &src_k8s_auth
+      host: "{{ src_oc_api_url | default(omit) }}"
+      api_key: "{{ src_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
+# Define anchor for destination OpenShift/Kubernetes API login info
+- name: Define anchor for destination OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    dst_k8s_auth: &dst_k8s_auth
+      host: "{{ dst_oc_api_url | default(omit) }}"
+      api_key: "{{ dst_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Disaster simulation - This is a placeholder task to simulate disaster on the source cluster. In a real scenario,
 # this would be an actual disaster event (e.g., source VMs deleted).
 # Step 1: Delete/suspend snapshot schedules to prevent empty snapshots from being created after VM deletion
 - name: Check if Schedule exists for source VMs before disaster simulation
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_snapshot_schedule_check
   changed_when: false
   when:
@@ -47,14 +72,12 @@
 
 - name: Delete Schedule to prevent empty snapshots after VM deletion
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
     state: absent
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   when:
     - simulate_disaster | bool
     - src_snapshot_schedule_check is defined
@@ -81,14 +104,12 @@
 # Step 2: Identify VMs to delete
 - name: Get list of VMs before failover in source namespace/label - {{ src_vm_namespace ~ ' / ' ~ src_vm_label }}
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: VirtualMachine
     api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
     label_selectors:
       - category={{ src_vm_label }}
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_vms_before_failover
   changed_when: false
   when: simulate_disaster | bool
@@ -98,6 +119,7 @@
 # Step 3: Stop running VMs gracefully before deletion
 - name: Stop all running VMs in source namespace to simulate disaster - {{ src_vm_namespace ~ ' / ' ~ src_vm_label }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     kind: VirtualMachine
     api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
@@ -107,9 +129,6 @@
     definition:
       spec:
         runStrategy: Halted
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   loop: "{{ src_vms_before_failover.resources }}"
   when:
     - simulate_disaster | bool
@@ -121,13 +140,11 @@
 
 - name: Wait for VMs to stop gracefully
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: VirtualMachine
     api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
     name: "{{ item.metadata.name }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   loop: "{{ src_vms_before_failover.resources }}"
   register: vm_stop_status
   until: >
@@ -150,14 +167,12 @@
 # Step 4: Delete VMs to complete disaster simulation
 - name: Delete all VMs in source namespace to simulate disaster - {{ src_vm_namespace ~ ' / ' ~ src_vm_label }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     kind: VirtualMachine
     api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
     name: "{{ item.metadata.name }}"
     state: absent
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   loop: "{{ src_vms_before_failover.resources }}"
   when:
     - simulate_disaster | bool
@@ -169,14 +184,12 @@
 
 - name: Wait for VMs to be deleted and verify deletion
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: VirtualMachine
     api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
     label_selectors:
       - category={{ src_vm_label }}
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_vms_after_disaster
   until: src_vms_after_disaster.resources | length == 0
   retries: 30
@@ -233,13 +246,11 @@
 # This is critical because in a real disaster scenario, the source cluster may be unavailable
 - name: Get existing AppMirrorRelationship to retrieve source application UID
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: existing_amr_info
   changed_when: false
   failed_when: existing_amr_info.resources | length == 0
@@ -258,10 +269,8 @@
 # The VMs will be in the same state as they were on the source cluster at the time of the last successful replication (last snapshot).
 - name: Fail over replicated VMs to the destination OpenShift cluster by promoting the AppMirrorRelationship (AMR)
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     wait: true
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -288,13 +297,11 @@
 # View the AppMirrorRelationship details on the destination OpenShift cluster
 - name: Get AppMirrorRelationship details to verify it has been promoted
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_appmirrorrelationship_info
   changed_when: false
   failed_when: dst_appmirrorrelationship_info.resources | length == 0
@@ -311,13 +318,11 @@
 # Wait for the AppMirrorRelationship to reach the Promoted state
 - name: Wait for AppMirrorRelationship to reach Promoted state - {{ appmirrorrelationship_specs.name }}
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_amr_state
   until: >
     dst_amr_state.resources | length > 0 and
@@ -340,14 +345,12 @@
 # Verify that VMs are actually restored on the destination cluster after AMR promotion
 - name: Wait for VMs to be restored on destination cluster after failover
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: VirtualMachine
     api_version: kubevirt.io/v1
     namespace: "{{ dst_vm_namespace }}"
     label_selectors:
       - category={{ src_vm_label }}
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_vms_after_failover
   until: dst_vms_after_failover.resources | length > 0
   retries: 60

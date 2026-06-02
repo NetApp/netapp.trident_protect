@@ -11,17 +11,42 @@
 # CR files with Cluster A as source and Cluster B as destination. For the reverse resync, you would need to update those CR files to
 # set Cluster B as the new source and Cluster A as the new destination, and then apply those updated CR files in this step.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
+    - dst_oc_api_url
+    - dst_oc_api_token
+
+# Define anchor for source OpenShift/Kubernetes API login info
+- name: Define anchor for source OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    src_k8s_auth: &src_k8s_auth
+      host: "{{ src_oc_api_url | default(omit) }}"
+      api_key: "{{ src_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
+# Define anchor for destination OpenShift/Kubernetes API login info
+- name: Define anchor for destination OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    dst_k8s_auth: &dst_k8s_auth
+      host: "{{ dst_oc_api_url | default(omit) }}"
+      api_key: "{{ dst_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Prerequisites check - Verify that snapshots exist on the new source cluster before proceeding with AMR creation
 - name: >-
     Check for available snapshots on the new source (original destination) cluster for
     application/namespace - {{ src_application_name ~ ' / ' ~ dst_vm_namespace }}
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Snapshot
     api_version: protect.trident.netapp.io/v1
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: src_snapshots_all
   changed_when: false
   tags:
@@ -96,13 +121,11 @@
 - name: Get source application UID from the source OpenShift cluster (original destination cluster) for AMR creation on the new destination cluster (original
     source cluster)
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Application
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_application_name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: new_src_application_info
   changed_when: false
   failed_when: new_src_application_info.resources | length == 0
@@ -121,10 +144,8 @@
 # On the new destination OpenShift cluster (original source cluster), create an AppMirrorRelationship CR to replicate VMs from source to destination
 - name: Create an AppMirrorRelationship CR on new destination OpenShift cluster (original source cluster) to replicate VMs from source to destination
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     wait: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -151,13 +172,11 @@
 # View the AppMirrorRelationship details on the new destination OpenShift cluster (original source cluster)
 - name: Get AppMirrorRelationship details to verify creation on the new destination OpenShift cluster (original source cluster)
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: new_dst_appmirrorrelationship_info
   changed_when: false
   failed_when: new_dst_appmirrorrelationship_info.resources | length == 0
@@ -176,13 +195,11 @@
 # Wait for the AppMirrorRelationship to reach the Established state
 - name: Wait for AppMirrorRelationship to reach Established state - {{ appmirrorrelationship_specs.name }}
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: new_dst_amr_state
   until: >
     new_dst_amr_state.resources | length > 0 and

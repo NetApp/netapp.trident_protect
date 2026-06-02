@@ -6,7 +6,17 @@
   vars:
     # Provide all required variables for the role here. See the role
     # README.md for a full list.
-    oc_api_url: https://api.example.openshift.com:6443
-    oc_api_token: <your_api_token>
+    src_oc_api_url: https://api.src.example.openshift.com:6443
+    src_oc_api_token: <your_src_api_token>
+    dst_oc_api_url: https://api.dst.example.openshift.com:6443
+    dst_oc_api_token: <your_dst_api_token>
+    validate_certs: false
+    src_vm_namespace: src-vm-namespace
+    dst_vm_namespace: dst-vm-namespace
+    appmirrorrelationship_specs:
+      name: app-mirror-relationship
+      namespaceMapping:
+        - source: src-vm-namespace
+          destination: dst-vm-namespace
   roles:
     - dr_failback_promote

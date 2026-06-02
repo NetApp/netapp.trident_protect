@@ -28,24 +28,25 @@ The role does not ship opinionated defaults. The caller must provide the
 following variables (typically via `-e @your_vars.yml` or under `vars:` in the
 playbook):
 
-| Variable | Description |
-|----------|-------------|
-| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). |
-| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). |
-| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). |
-| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). |
-| `src_ontap_s3_specs` | Source ONTAP S3 specs dict (re-used to recreate Secret/AppVault on the new source cluster). |
-| `dst_ontap_s3_specs` | Destination ONTAP S3 specs dict. |
-| `src_appvault_name` | AppVault name for the source application. |
-| `dst_appvault_name` | AppVault name for the destination application. |
-| `src_application_name` | Source application name. |
-| `src_vm_namespace` | Original source namespace. |
-| `dst_vm_namespace` | Destination namespace (new source after failover). |
-| `src_on_demand_snapshot` | Set to `true` for an on-demand snapshot of the new source. |
-| `src_on_demand_snapshot_specs` | On-demand snapshot specs dict. |
-| `src_scheduled_snapshot` | Set to `true` to create a snapshot Schedule on the new source. |
-| `src_snapshot_schedule_specs` | Snapshot schedule specs dict. |
-| `shutdown_snapshot_name` | Name of the shutdown snapshot to create on the new source before failback. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). | Required |
+| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). | Required |
+| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
+| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `src_ontap_s3_specs` | Source ONTAP S3 specs dict (re-used to recreate Secret/AppVault on the new source cluster). | Required |
+| `dst_ontap_s3_specs` | Destination ONTAP S3 specs dict. | Required |
+| `src_appvault_name` | AppVault name for the source application. | Required |
+| `dst_appvault_name` | AppVault name for the destination application. | Required |
+| `src_application_name` | Source application name. | Required |
+| `src_vm_namespace` | Original source namespace. | Required |
+| `dst_vm_namespace` | Destination namespace (new source after failover). | Required |
+| `src_on_demand_snapshot` | Set to `true` for an on-demand snapshot of the new source. | `false` |
+| `src_on_demand_snapshot_specs` | On-demand snapshot specs dict (`name`, `reclaim_policy`). Required when `src_on_demand_snapshot` is `true`. | — |
+| `src_scheduled_snapshot` | Set to `true` to create a snapshot Schedule on the new source. | `false` |
+| `src_snapshot_schedule_specs` | Snapshot schedule specs dict (`name`, `snapshot_reclaim_policy`, `retention_count`, `recurrence_rule`). Required when `src_scheduled_snapshot` is `true`. | — |
+| `shutdown_snapshot_name` | Name of the shutdown snapshot to create on the new source before failback. | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.
@@ -59,8 +60,8 @@ playbook):
   gather_facts: false
   connection: local
   vars:
-    oc_api_url: "https://api.aa02-ocp.example.com:6443"
-    oc_api_token: "{{ OC_API_TOKEN }}"
+    src_oc_api_url: "https://api.src.example.openshift.com:6443"
+    src_oc_api_token: "{{ SRC_OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
     - dr_reverse_resync_prerequisites

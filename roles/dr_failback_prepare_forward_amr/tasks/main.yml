@@ -3,18 +3,43 @@
 # This role should be executed AFTER the dr_failback_promote role has been executed to ensure the AMR has been promoted on the
 # new destination (original source) cluster using the shutdown snapshot as the promoted snapshot.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
+    - dst_oc_api_url
+    - dst_oc_api_token
+
+# Define anchor for source OpenShift/Kubernetes API login info
+- name: Define anchor for source OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    src_k8s_auth: &src_k8s_auth
+      host: "{{ src_oc_api_url | default(omit) }}"
+      api_key: "{{ src_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
+# Define anchor for destination OpenShift/Kubernetes API login info
+- name: Define anchor for destination OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    dst_k8s_auth: &dst_k8s_auth
+      host: "{{ dst_oc_api_url | default(omit) }}"
+      api_key: "{{ dst_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Remove any protection schedules remaining on the new destination cluster (original source cluster) that were used for replication
 # to the original destination cluster to ensure there are no conflicts or unintended replication activities during the failback process.
 - name: Remove any remaining protection schedules on the new destination cluster (original source cluster)
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     state: absent
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   tags:
     - disable_protection_schedules
 
@@ -22,13 +47,11 @@
 # before proceeding with any further failback preparation tasks.
 - name: Verify all protection schedules are removed from the new destination cluster (original source cluster)
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_schedule_info
   failed_when: src_schedule_info.resources | length > 0
   tags:
@@ -37,10 +60,8 @@
 # On the new destination cluster (original source cluster), delete the AppMirrorRelationship CR. This causes the destination to become the source.
 - name: Delete the AppMirrorRelationship CR on the new destination cluster (original source cluster)
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: absent
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: AppMirrorRelationship
@@ -53,13 +74,11 @@
 # Wait for the AMR to be fully deleted before proceeding to reverse resync config.
 - name: Wait for AppMirrorRelationship to be fully deleted on the new destination cluster (original source cluster) before proceeding with reverse resync config
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_amr_delete_check
   until: src_amr_delete_check.resources | length == 0
   retries: 30
@@ -102,10 +121,8 @@
 # on the destination cluster.
 - name: Create a snapshot schedule on the original source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: Schedule
@@ -130,13 +147,11 @@
 # Verify the snapshot schedule creation
 - name: Get source snapshot schedule details to verify creation
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: original_src_snapshot_schedule_info
   changed_when: false
   when: src_scheduled_snapshot | default(false) | bool
@@ -173,10 +188,8 @@
 # replication on the destination cluster.
 - name: Create an on-demand snapshot on the original source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: Snapshot
@@ -194,13 +207,11 @@
 # Wait for on-demand snapshot to reach Completed state before proceeding
 - name: Wait for source on-demand snapshot to reach Completed state on the original source OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Snapshot
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_on_demand_snapshot_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: original_src_on_demand_snapshot_info
   until: >
     original_src_on_demand_snapshot_info.resources | length > 0 and

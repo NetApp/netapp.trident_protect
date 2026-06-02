@@ -6,6 +6,33 @@
 # The below tasks are executed on the source OpenShift cluster. Ensure that you have access to the source cluster before running these tasks.
 # These tasks create necessary resources such as Kubernetes Secrets, AppVaults, Applications, and Snapshots on the source cluster.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
+    - dst_oc_api_url
+    - dst_oc_api_token
+
+# Define anchor for source OpenShift/Kubernetes API login info
+- name: Define anchor for source OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    src_k8s_auth: &src_k8s_auth
+      host: "{{ src_oc_api_url | default(omit) }}"
+      api_key: "{{ src_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
+# Define anchor for destination OpenShift/Kubernetes API login info
+- name: Define anchor for destination OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    dst_k8s_auth: &dst_k8s_auth
+      host: "{{ dst_oc_api_url | default(omit) }}"
+      api_key: "{{ dst_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Preflight validation - Validate variables for secret creation and AppVault setup on the source cluster
 - name: Validate variables for secret creation and AppVault setup on the source cluster
   ansible.builtin.assert:
@@ -31,12 +58,10 @@
 # Verify trident-protect namespace exists on the source cluster
 - name: Verify trident-protect namespace exists on the source OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Namespace
     api_version: v1
     name: trident-protect
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_tp_ns_check
   failed_when: src_tp_ns_check.resources | length == 0
   changed_when: false
@@ -48,10 +73,8 @@
 # Create Kubernetes Secret to store source ONTAP S3 credentials
 - name: Create Kubernetes Secret to store source ONTAP S3 credentials
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: v1
       kind: Secret
@@ -69,13 +92,11 @@
 # Verify the creation of Kubernetes Secret on the source cluster
 - name: Get source ONTAP S3 Secret details
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Secret
     api_version: v1
     name: "{{ src_ontap_s3_specs.secret_name }}"
     namespace: trident-protect
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_ontap_s3_secret_info
   failed_when: src_ontap_s3_secret_info.resources | length == 0
   changed_when: false
@@ -86,10 +107,8 @@
 # On the source OpenShift cluster, create an AppVault for the source VMs
 - name: Create an AppVault for the source VMs on the source OpenShift cluster
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: AppVault
@@ -119,13 +138,11 @@
 # View the AppVault details for the source VMs
 - name: Get source AppVault details
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: AppVault
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_appvault_name }}"
     namespace: trident-protect
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_appvault_info
   changed_when: false
   tags:
@@ -156,9 +173,7 @@
 
 - name: Verify source VMs namespace exists - {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
+    <<: *src_k8s_auth
     api_version: v1
     kind: Namespace
     name: "{{ src_vm_namespace }}"
@@ -177,10 +192,8 @@
     Label VMs in source namespace for which snapshot needs to be taken and replicated.
     This label is used in the Application CR to select VMs for replication - {{ src_vm_namespace }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     kind: VirtualMachine
     name: "{{ item }}"
     namespace: "{{ src_vm_namespace }}"
@@ -198,10 +211,8 @@
     Label PVCs in source namespace for which snapshot needs to be taken and replicated.
     This label is used in the Application CR to select PVCs for replication - {{ src_vm_namespace }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     kind: PersistentVolumeClaim
     name: "{{ item }}"
     namespace: "{{ src_vm_namespace }}"
@@ -218,9 +229,7 @@
 # Verify labels on VMs and PVCs in source namespace
 - name: Verify labels on VMs in source namespace {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
+    <<: *src_k8s_auth
     namespace: "{{ src_vm_namespace }}"
     kind: VirtualMachine
     name: "{{ item }}"
@@ -242,9 +251,7 @@
 
 - name: Verify labels on PVCs in source namespace {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
+    <<: *src_k8s_auth
     namespace: "{{ src_vm_namespace }}"
     kind: PersistentVolumeClaim
     name: "{{ item }}"
@@ -267,10 +274,8 @@
 # On the source OpenShift cluster, create the source application CR for the VMs using label selector
 - name: Create the source application CR for the VMs using label selector on the source OpenShift cluster
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: Application
@@ -289,13 +294,11 @@
 # Verify the source application CR creation
 - name: Get source Application CR details to verify creation
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Application
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_application_name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_application_info
   changed_when: false
   tags:
@@ -331,10 +334,8 @@
 # Note that here snapshot schedule is created for specific VMs in a namespace by using corresponding application.
 - name: Create a snapshot schedule on the source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: Schedule
@@ -359,13 +360,11 @@
 # Verify the snapshot schedule creation
 - name: Get source snapshot schedule details to verify creation
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_snapshot_schedule_info
   changed_when: false
   when: src_scheduled_snapshot | default(false)
@@ -400,10 +399,8 @@
 # This snapshot is used as the basis for replication on the destination cluster.
 - name: Create an on-demand snapshot on the source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: Snapshot
@@ -421,13 +418,11 @@
 # Verify the on-demand snapshot creation
 - name: Get source on-demand snapshot details to verify creation
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Snapshot
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_on_demand_snapshot_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: src_on_demand_snapshot_info
   changed_when: false
   when: src_on_demand_snapshot | default(false)
@@ -474,10 +469,8 @@
 # On the destination OpenShift cluster, create a new namespace for destination VMs if it does not exist
 - name: Create destination namespace on the destination OpenShift cluster - {{ dst_vm_namespace }}
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: v1
       kind: Namespace
@@ -490,12 +483,10 @@
 # Verify trident-protect namespace exists on the destination OpenShift cluster
 - name: Verify trident-protect namespace exists on the destination OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Namespace
     api_version: v1
     name: trident-protect
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_tp_ns_check
   failed_when: dst_tp_ns_check.resources | length == 0
   changed_when: false
@@ -509,10 +500,8 @@
 # Create Kubernetes Secret to store source ONTAP S3 credentials on the destination OpenShift cluster
 - name: Create Kubernetes Secret to store source ONTAP S3 credentials on the destination OpenShift cluster
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: v1
       kind: Secret
@@ -530,13 +519,11 @@
 # Verify the creation of secret to store source ONTAP S3 credentials on the destination cluster
 - name: Verify the creation of secret to store source ONTAP S3 credentials on the destination cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Secret
     api_version: v1
     name: "{{ src_ontap_s3_specs.secret_name }}"
     namespace: trident-protect
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_src_ontap_s3_secret_info
   failed_when: dst_src_ontap_s3_secret_info.resources | length == 0
   changed_when: false
@@ -547,10 +534,8 @@
 # On the destination OpenShift cluster, create a source application AppVault CR
 - name: Create source application AppVault CR on the destination OpenShift cluster
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: AppVault
@@ -580,13 +565,11 @@
 # View the source application AppVault details on the destination OpenShift cluster
 - name: Get source application AppVault details on the destination OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppVault
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_appvault_name }}"
     namespace: trident-protect
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_src_appvault_info
   changed_when: false
   tags:
@@ -603,10 +586,8 @@
 # Create Kubernetes Secret to store destination ONTAP S3 credentials on the destination OpenShift cluster
 - name: Create Kubernetes Secret to store destination ONTAP S3 credentials on the destination OpenShift cluster
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: v1
       kind: Secret
@@ -624,13 +605,11 @@
 # Verify the creation of secret to store destination ONTAP S3 credentials on the destination cluster
 - name: Verify the creation of secret to store destination ONTAP S3 credentials on the destination cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Secret
     api_version: v1
     name: "{{ dst_ontap_s3_specs.secret_name }}"
     namespace: trident-protect
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_ontap_s3_secret_info
   failed_when: dst_ontap_s3_secret_info.resources | length == 0
   changed_when: false
@@ -641,10 +620,8 @@
 # Create a destination AppVault CR for the destination application on the destination OpenShift cluster
 - name: Create a destination AppVault CR for the destination application on the destination OpenShift cluster
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: AppVault
@@ -674,13 +651,11 @@
 # View the destination application AppVault details on the destination OpenShift cluster
 - name: Get destination application AppVault details on the destination OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppVault
     api_version: protect.trident.netapp.io/v1
     name: "{{ dst_appvault_name }}"
     namespace: trident-protect
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_appvault_info
   changed_when: false
   tags:
