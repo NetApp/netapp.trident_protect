@@ -13,10 +13,18 @@
     validate_certs: false
     src_vm_namespace: src-vm-namespace
     dst_vm_namespace: dst-vm-namespace
+    src_appvault_name: src-appvault-ontap
+    dst_appvault_name: dst-appvault-ontap
+    src_application_name: my-application
+    shutdown_snapshot_name: shutdown-snapshot
     appmirrorrelationship_specs:
       name: app-mirror-relationship
+      storage_class: ontap-san-sc
       namespaceMapping:
         - source: src-vm-namespace
           destination: dst-vm-namespace
+      recurrence_rule:
+        dtstart: 20240101T000000Z
+        rrule: FREQ=HOURLY;INTERVAL=1
   roles:
     - dr_failback_promote
