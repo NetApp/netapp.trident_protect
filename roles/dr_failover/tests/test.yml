@@ -17,8 +17,15 @@
       - vm-1
       - vm-2
     src_vm_label: app=my-vm
+    src_appvault_name: src-appvault-ontap
+    dst_appvault_name: dst-appvault-ontap
+    src_application_name: my-application
     simulate_disaster: false
     appmirrorrelationship_specs:
       name: app-mirror-relationship
+      storage_class: ontap-san-sc
+      recurrence_rule:
+        dtstart: 20240101T000000Z
+        rrule: FREQ=HOURLY;INTERVAL=1
   roles:
     - dr_failover

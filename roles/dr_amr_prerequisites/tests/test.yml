@@ -36,14 +36,16 @@
       name: on-demand-snapshot
       reclaim_policy: Delete
     src_ontap_s3_specs:
-      endpoint: https://s3.example.com
-      bucket: src-trident-protect-bucket
-      credentials_secret_name: src-s3-secret
-      credentials_secret_namespace: trident-protect
+      secret_name: src-s3-secret
+      access_key: <your_src_s3_access_key>
+      secret_key: <your_src_s3_secret_key>
+      s3_bucket_name: src-trident-protect-bucket
+      s3_endpoint: https://s3.example.com
     dst_ontap_s3_specs:
-      endpoint: https://s3.dst.example.com
-      bucket: dst-trident-protect-bucket
-      credentials_secret_name: dst-s3-secret
-      credentials_secret_namespace: trident-protect
+      secret_name: dst-s3-secret
+      access_key: <your_dst_s3_access_key>
+      secret_key: <your_dst_s3_secret_key>
+      s3_bucket_name: dst-trident-protect-bucket
+      s3_endpoint: https://s3.dst.example.com
   roles:
     - dr_amr_prerequisites
