@@ -6,7 +6,44 @@
   vars:
     # Provide all required variables for the role here. See the role
     # README.md for a full list.
-    oc_api_url: https://api.example.openshift.com:6443
-    oc_api_token: <your_api_token>
+    src_oc_api_url: https://api.src.example.openshift.com:6443
+    src_oc_api_token: <your_src_api_token>
+    dst_oc_api_url: https://api.dst.example.openshift.com:6443
+    dst_oc_api_token: <your_dst_api_token>
+    validate_certs: false
+    src_appvault_name: src-appvault-ontap
+    dst_appvault_name: dst-appvault-ontap
+    src_application_name: my-application
+    src_vm_namespace: src-vm-namespace
+    dst_vm_namespace: dst-vm-namespace
+    src_vm_list:
+      - vm-1
+      - vm-2
+    src_pvc_list:
+      - pvc-1
+      - pvc-2
+    src_vm_label: app=my-vm
+    src_scheduled_snapshot: true
+    src_on_demand_snapshot: false
+    src_snapshot_schedule_specs:
+      name: snapshot-schedule
+      snapshot_reclaim_policy: Delete
+      retention_count: 5
+      recurrence_rule:
+        dtstart: 20240101T000000Z
+        rrule: FREQ=HOURLY;INTERVAL=1
+    src_on_demand_snapshot_specs:
+      name: on-demand-snapshot
+      reclaim_policy: Delete
+    src_ontap_s3_specs:
+      endpoint: https://s3.example.com
+      bucket: src-trident-protect-bucket
+      credentials_secret_name: src-s3-secret
+      credentials_secret_namespace: trident-protect
+    dst_ontap_s3_specs:
+      endpoint: https://s3.dst.example.com
+      bucket: dst-trident-protect-bucket
+      credentials_secret_name: dst-s3-secret
+      credentials_secret_namespace: trident-protect
   roles:
     - dr_amr_prerequisites

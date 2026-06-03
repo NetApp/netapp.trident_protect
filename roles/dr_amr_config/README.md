@@ -29,18 +29,19 @@ The role does not ship opinionated defaults. The caller must provide the
 following variables (typically via `-e @your_vars.yml` or under `vars:` in the
 playbook):
 
-| Variable | Description |
-|----------|-------------|
-| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). |
-| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). |
-| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). |
-| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). |
-| `src_appvault_name` | AppVault on the source cluster. |
-| `dst_appvault_name` | AppVault on the destination cluster. |
-| `src_application_name` | Source Application referenced by the AMR. |
-| `src_vm_namespace` | Source namespace. |
-| `dst_vm_namespace` | Destination namespace where replicated VMs are materialized. |
-| `appmirrorrelationship_specs` | Dict with `name`, `storage_class`, and `recurrence_rule` (`dtstart`, `rrule`) for the AMR CR. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). | Required |
+| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). | Required |
+| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
+| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `src_appvault_name` | AppVault on the source cluster. | Required |
+| `dst_appvault_name` | AppVault on the destination cluster. | Required |
+| `src_application_name` | Source Application referenced by the AMR. | Required |
+| `src_vm_namespace` | Source namespace. | Required |
+| `dst_vm_namespace` | Destination namespace where replicated VMs are materialized. | Required |
+| `appmirrorrelationship_specs` | Dict with `name`, `storage_class`, and `recurrence_rule` (`dtstart`, `rrule`) for the AMR CR. | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.
@@ -54,8 +55,8 @@ playbook):
   gather_facts: false
   connection: local
   vars:
-    oc_api_url: "https://api.aa02-ocp.example.com:6443"
-    oc_api_token: "{{ OC_API_TOKEN }}"
+    src_oc_api_url: "https://api.src.example.openshift.com:6443"
+    src_oc_api_token: "{{ SRC_OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
     - dr_amr_config

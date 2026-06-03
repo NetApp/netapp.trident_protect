@@ -6,18 +6,43 @@
 # Make sure the original source cluster is ready to take over as primary again and execute any necessary cleanup tasks on the destination
 # cluster before running this role.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
+    - dst_oc_api_url
+    - dst_oc_api_token
+
+# Define anchor for source OpenShift/Kubernetes API login info
+- name: Define anchor for source OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    src_k8s_auth: &src_k8s_auth
+      host: "{{ src_oc_api_url | default(omit) }}"
+      api_key: "{{ src_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
+# Define anchor for destination OpenShift/Kubernetes API login info
+- name: Define anchor for destination OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    dst_k8s_auth: &dst_k8s_auth
+      host: "{{ dst_oc_api_url | default(omit) }}"
+      api_key: "{{ dst_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Disable protection schedules for the VM on the source (original destination) cluster to prevent any replication activities during the
 # failback preparation process.
 - name: Disable protection schedules for the VM on the source (original destination) cluster
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     state: absent
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   tags:
     - disable_schedule
 
@@ -25,13 +50,11 @@
 # before proceeding with any further failback preparation tasks.
 - name: Verify protection schedules are disabled for the VM on the source (original destination) cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_schedule_info
   failed_when: dst_schedule_info.resources | length > 0
   tags:
@@ -41,10 +64,8 @@
 # This snapshot will be used as the source for the failback process to restore the VM back to the original source cluster.
 - name: Create a shutdown snapshot on the source (original destination) cluster for failback
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: ShutdownSnapshot
@@ -61,13 +82,11 @@
 # Verify that the shutdown snapshot has been successfully created on the source (original destination) cluster before proceeding with the failback process.
 - name: Verify shutdown snapshot creation on the source (original destination) cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: ShutdownSnapshot
     api_version: protect.trident.netapp.io/v1
     name: "{{ shutdown_snapshot_name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: shutdown_snapshot_verify_info
   until: >
     shutdown_snapshot_verify_info.resources | length > 0 and
@@ -94,13 +113,11 @@
 - name: Get source application UID from the source OpenShift cluster (original destination cluster) for AMR promotion on the new destination cluster (original
     source cluster)
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Application
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_application_name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: new_src_application_info
   changed_when: false
   failed_when: new_src_application_info.resources | length == 0
@@ -119,10 +136,8 @@
 # Perform a fail over to the destination (original source) cluster using the ShutdownSnapshot as the promoted snapshot.
 - name: Perform failover to the destination (original source) cluster using the ShutdownSnapshot as the promoted snapshot
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     wait: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -150,13 +165,11 @@
 # View the AppMirrorRelationship details on the new destination OpenShift cluster (original source cluster)
 - name: Get AppMirrorRelationship details to verify promotion on the new destination OpenShift cluster (original source cluster)
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: new_dst_appmirrorrelationship_info
   changed_when: false
   retries: 10
@@ -178,13 +191,11 @@
 # Wait for the AppMirrorRelationship to reach the Promoted state
 - name: Wait for AppMirrorRelationship to reach Promoted state - {{ appmirrorrelationship_specs.name }}
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: new_dst_amr_state
   until: >
     new_dst_amr_state.resources | length > 0 and

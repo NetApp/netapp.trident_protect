@@ -8,5 +8,16 @@
     # README.md for a full list.
     oc_api_url: https://api.example.openshift.com:6443
     oc_api_token: <your_api_token>
+    validate_certs: false
+    snapshot_schedule_name: snapshot-schedule
+    application_name: my-application
+    appvault_name: appvault-ontap
+    vm_namespace: vm-namespace
+    snapshot_granularity: Hourly
+    snapshot_retention_count: 5
+    snapshot_hour: 0
+    snapshot_minute: 0
+    snapshot_day_of_month: 1
+    snapshot_day_of_week: 1
   roles:
     - create_snapshot_schedule

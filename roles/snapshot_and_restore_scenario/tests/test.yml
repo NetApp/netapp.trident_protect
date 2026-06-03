@@ -8,5 +8,17 @@
     # README.md for a full list.
     oc_api_url: https://api.example.openshift.com:6443
     oc_api_token: <your_api_token>
+    validate_certs: false
+    appvault_name: appvault-ontap
+    application_name: my-application
+    vm_namespace: vm-namespace
+    vm_list:
+      - vm-1
+      - vm-2
+    pvc_list:
+      - pvc-1
+      - pvc-2
+    vm_label: app=my-vm
+    snapshotinplacerestore_name: snapshot-restore
   roles:
     - snapshot_and_restore_scenario

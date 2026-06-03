@@ -1,4 +1,3 @@
 ---
 # defaults file for dr_failback_establish_forward_amr
-# This role has no opinionated defaults; all variables are expected to be
-# provided by the caller (see README.md for the full list).
+validate_certs: false

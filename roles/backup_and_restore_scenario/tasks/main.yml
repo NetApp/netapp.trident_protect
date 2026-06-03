@@ -4,15 +4,36 @@
 # OpenShift cluster and that the common tasks in roles/trident-protect/trident-protect-common have been
 # executed to configure the prerequisites like AppVault and Application.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - oc_api_url
+    - oc_api_token
+    - appvault_name
+    - application_name
+    - vm_namespace
+    - on_demand_backup_name
+    - restore_namespace
+    - backuprestore_name
+
+# Define anchor for OpenShift/Kubernetes API login info
+- name: Define anchor for OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    k8s_auth: &k8s_auth
+      host: "{{ oc_api_url | default(omit) }}"
+      api_key: "{{ oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Create on-demand backup of specific VMs in a namespace by using corresponding application
 - name: >-
     Create on-demand backup of specific VMs by using corresponding application -
     {{ application_name | default('') ~ ' / ' ~ vm_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: "{{ vm_namespace | default('') }}"
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -36,9 +57,7 @@
 # Note: Adjust retries and delay as needed based on expected backup duration
 - name: Wait for the backup to complete
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     namespace: "{{ vm_namespace | default('') }}"
     kind: Backup
@@ -60,9 +79,7 @@
 # Verify that the backup was created successfully
 - name: Verify that the on-demand backup was created successfully - {{ on_demand_backup_name | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     kind: Backup
     namespace: "{{ vm_namespace | default('') }}"
@@ -88,10 +105,8 @@
 # Create a new namespace for restoration
 - name: Create a new restore namespace - {{ restore_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: v1
       kind: Namespace
@@ -105,10 +120,8 @@
 # Create a BackupRestore object to restore the VMs from the on-demand backup to a different namespace
 - name: Create a BackupRestore object to restore the VMs from the on-demand backup - {{ restore_namespace | default('') }}
   kubernetes.core.k8s:
+    <<: *k8s_auth
     state: present
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
     namespace: "{{ restore_namespace | default('') }}"
     definition:
       apiVersion: protect.trident.netapp.io/v1
@@ -134,9 +147,7 @@
 # Wait for the restore to complete
 - name: Wait for the restore to complete
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     namespace: "{{ restore_namespace | default('') }}"
     kind: BackupRestore
@@ -158,9 +169,7 @@
 # Verify that the BackupRestore object was created successfully
 - name: Verify that the BackupRestore was created successfully - {{ backuprestore_name | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: protect.trident.netapp.io/v1
     kind: BackupRestore
     namespace: "{{ restore_namespace | default('') }}"
@@ -184,9 +193,7 @@
 # Verify that the VMs have been restored successfully to the new namespace
 - name: Verify VMs restored to namespace - {{ restore_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: kubevirt.io/v1
     kind: VirtualMachine
     namespace: "{{ restore_namespace | default('') }}"
@@ -199,9 +206,7 @@
 # Verify that the PVCs have been restored successfully to the new namespace
 - name: Verify PVCs restored to namespace - {{ restore_namespace | default('') }}
   kubernetes.core.k8s_info:
-    host: "{{ oc_api_url }}"
-    api_key: "{{ oc_api_token }}"
-    validate_certs: false
+    <<: *k8s_auth
     api_version: v1
     kind: PersistentVolumeClaim
     namespace: "{{ restore_namespace | default('') }}"

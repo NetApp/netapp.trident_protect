@@ -2,17 +2,42 @@
 # Ansible tasks for setting up prerequisites to reverse resync a failed over replication relationship using Trident Protect.
 # This role should be executed AFTER the dr_failover role has been executed and the failed over VMs are running successfully on the destination cluster.
 
+# Verify required variables are defined and not empty
+- name: Verify required variables are defined and not empty
+  ansible.builtin.fail:
+    msg: "{{ item }} is not defined or empty"
+  when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
+    - dst_oc_api_url
+    - dst_oc_api_token
+
+# Define anchor for source OpenShift/Kubernetes API login info
+- name: Define anchor for source OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    src_k8s_auth: &src_k8s_auth
+      host: "{{ src_oc_api_url | default(omit) }}"
+      api_key: "{{ src_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
+# Define anchor for destination OpenShift/Kubernetes API login info
+- name: Define anchor for destination OpenShift/Kubernetes API login info
+  ansible.builtin.set_fact:
+    dst_k8s_auth: &dst_k8s_auth
+      host: "{{ dst_oc_api_url | default(omit) }}"
+      api_key: "{{ dst_oc_api_token | default(omit) }}"
+      validate_certs: "{{ validate_certs | default(false) }}"
+
 # Pre-condition check: Verify that failed over VMs are running on the destination cluster before proceeding.
 - name: Verify failed over VMs are running on the destination cluster before proceeding with reverse resync prerequisites
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: VirtualMachine
     api_version: kubevirt.io/v1
     namespace: "{{ dst_vm_namespace }}"
     label_selectors:
       - category={{ src_vm_label }}
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_vms_running_check
   changed_when: false
   failed_when: dst_vms_running_check.resources | length == 0
@@ -30,14 +55,12 @@
 # This is required to avoid snapshot creation during reverse resync which can cause reverse resync failure.
 - name: Delete Snapshot schedule on the original source cluster if any before executing the reverse resync prerequisites tasks
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
     state: absent
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   when:
     - src_scheduled_snapshot | default(false) | bool
     - src_snapshot_schedule_specs is defined
@@ -48,10 +71,8 @@
 # On the original destination cluster, delete the AppMirrorRelationship CR (which is in Promoted state). This causes the destination to become the source.
 - name: Delete the AppMirrorRelationship (AMR) on the original destination cluster to prepare for reverse resync
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: absent
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: AppMirrorRelationship
@@ -64,13 +85,11 @@
 # Wait for the AMR to be fully deleted before proceeding to reverse resync config.
 - name: Wait for AppMirrorRelationship to be fully deleted on the destination cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: AppMirrorRelationship
     api_version: protect.trident.netapp.io/v1
     name: "{{ appmirrorrelationship_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: dst_amr_delete_check
   until: dst_amr_delete_check.resources | length == 0
   retries: 30
@@ -110,12 +129,10 @@
 # Verify trident-protect namespace exists on the new destination (original source) cluster
 - name: Verify trident-protect namespace exists on the new destination (original source) OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Namespace
     api_version: v1
     name: trident-protect
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: new_dst_tp_ns_check
   failed_when: new_dst_tp_ns_check.resources | length == 0
   changed_when: false
@@ -127,10 +144,8 @@
 # Create Kubernetes Secret to store source ONTAP S3 credentials on the new destination (original source cluster) OpenShift cluster
 - name: Create Kubernetes Secret to store source ONTAP S3 credentials on the new destination (original source cluster) OpenShift cluster
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: v1
       kind: Secret
@@ -148,13 +163,11 @@
 # Verify the creation of secret to store source ONTAP S3 credentials on the new destination (original source) cluster
 - name: Verify the creation of secret to store source ONTAP S3 credentials on the new destination (original source) cluster
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: Secret
     api_version: v1
     name: "{{ dst_ontap_s3_specs.secret_name }}"
     namespace: trident-protect
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: new_dst_src_ontap_s3_secret_info
   failed_when: new_dst_src_ontap_s3_secret_info.resources | length == 0
   changed_when: false
@@ -164,10 +177,8 @@
 # On the new destination (original source) OpenShift cluster, create a source application AppVault CR
 - name: Create source application AppVault CR on the new destination (original source) OpenShift cluster
   kubernetes.core.k8s:
+    <<: *src_k8s_auth
     state: present
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: AppVault
@@ -197,13 +208,11 @@
 # View the source application AppVault details on the new destination (original source) OpenShift cluster
 - name: Get source application AppVault details on the new destination (original source) OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *src_k8s_auth
     kind: AppVault
     api_version: protect.trident.netapp.io/v1
     name: "{{ dst_appvault_name }}"
     namespace: trident-protect
-    host: "{{ src_oc_api_url }}"
-    api_key: "{{ src_oc_api_token }}"
-    validate_certs: false
   register: new_dst_src_appvault_info
   failed_when: new_dst_src_appvault_info.resources | length == 0
   changed_when: false
@@ -254,10 +263,8 @@
 # On the new source OpenShift cluster, take a snapshot of the source application. This snapshot is used as the basis for replication on the destination cluster.
 - name: Create a snapshot schedule on the new source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: Schedule
@@ -282,13 +289,11 @@
 # Verify the snapshot schedule creation
 - name: Get source snapshot schedule details to verify creation
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Schedule
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_snapshot_schedule_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: new_src_snapshot_schedule_info
   changed_when: false
   when: src_scheduled_snapshot | default(false) | bool
@@ -327,10 +332,8 @@
 # for replication on the destination cluster.
 - name: Create an on-demand snapshot on the new source OpenShift cluster for source application - {{ src_application_name }}
   kubernetes.core.k8s:
+    <<: *dst_k8s_auth
     state: present
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
     definition:
       apiVersion: protect.trident.netapp.io/v1
       kind: Snapshot
@@ -348,13 +351,11 @@
 # Wait for on-demand snapshot to reach Completed state before proceeding
 - name: Wait for source on-demand snapshot to reach Completed state on the new source OpenShift cluster
   kubernetes.core.k8s_info:
+    <<: *dst_k8s_auth
     kind: Snapshot
     api_version: protect.trident.netapp.io/v1
     name: "{{ src_on_demand_snapshot_specs.name }}"
     namespace: "{{ dst_vm_namespace }}"
-    host: "{{ dst_oc_api_url }}"
-    api_key: "{{ dst_oc_api_token }}"
-    validate_certs: false
   register: new_src_on_demand_snapshot_info
   until: >
     new_src_on_demand_snapshot_info.resources | length > 0 and

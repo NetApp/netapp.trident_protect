@@ -31,19 +31,20 @@ The role does not ship opinionated defaults. The caller must provide the
 following variables (typically via `-e @your_vars.yml` or under `vars:` in the
 playbook):
 
-| Variable | Description |
-|----------|-------------|
-| `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. |
-| `oc_api_token` | Bearer token used to authenticate against the OpenShift API. |
-| `appvault_name` | Trident Protect AppVault used to store the backup. |
-| `application_name` | Trident Protect Application that is backed up. |
-| `vm_namespace` | Namespace containing the source VMs. |
-| `on_demand_backup_name` | Name of the on-demand Backup CR to create. |
-| `restore_namespace` | Namespace into which VMs will be restored. |
-| `backuprestore_name` | Name of the BackupRestore CR used for restoration. |
-| `vm_list` | List of VM names (used during validation/restore). |
-| `pvc_list` | List of PVC names associated with the VMs. |
-| `vm_label` | Label value applied to VMs and PVCs. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. | Required |
+| `oc_api_token` | Bearer token used to authenticate against the OpenShift API. | Required |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `appvault_name` | Trident Protect AppVault used to store the backup. | Required |
+| `application_name` | Trident Protect Application that is backed up. | Required |
+| `vm_namespace` | Namespace containing the source VMs. | Required |
+| `on_demand_backup_name` | Name of the on-demand Backup CR to create. | Required |
+| `restore_namespace` | Namespace into which VMs will be restored. | Required |
+| `backuprestore_name` | Name of the BackupRestore CR used for restoration. | Required |
+| `vm_list` | List of VM names (used during validation/restore). | Required |
+| `pvc_list` | List of PVC names associated with the VMs. | Required |
+| `vm_label` | Label value applied to VMs and PVCs. | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.

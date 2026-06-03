@@ -29,18 +29,23 @@ The role does not ship opinionated defaults. The caller must provide the
 following variables (typically via `-e @your_vars.yml` or under `vars:` in the
 playbook):
 
-| Variable | Description |
-|----------|-------------|
-| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). |
-| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). |
-| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). |
-| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). |
-| `appmirrorrelationship_specs` | AMR specs (uses `name`). |
-| `src_appvault_name` | AppVault on the original source cluster. |
-| `dst_appvault_name` | AppVault on the original destination cluster. |
-| `src_vm_namespace` | Original source namespace. |
-| `dst_vm_namespace` | Original destination namespace. |
-| `src_application_name` | Source application name. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `src_oc_api_url` | Source OpenShift cluster API server URL (DR scenarios). | Required |
+| `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). | Required |
+| `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
+| `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `appmirrorrelationship_specs` | AMR specs (uses `name`). | Required |
+| `src_appvault_name` | AppVault on the original source cluster. | Required |
+| `dst_appvault_name` | AppVault on the original destination cluster. | Required |
+| `src_vm_namespace` | Original source namespace. | Required |
+| `dst_vm_namespace` | Original destination namespace. | Required |
+| `src_application_name` | Source application name. | Required |
+| `src_scheduled_snapshot` | Set to `true` to create a snapshot Schedule on the source cluster before forward AMR. | `false` |
+| `src_snapshot_schedule_specs` | Dict with `name`, `snapshot_reclaim_policy`, `retention_count`, `recurrence_rule` (`dtstart`, `rrule`). Required when `src_scheduled_snapshot` is `true`. | — |
+| `src_on_demand_snapshot` | Set to `true` to take an on-demand snapshot before forward AMR. | `false` |
+| `src_on_demand_snapshot_specs` | Dict with `name` and `reclaim_policy` for the on-demand snapshot. Required when `src_on_demand_snapshot` is `true`. | — |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.
@@ -54,8 +59,8 @@ playbook):
   gather_facts: false
   connection: local
   vars:
-    oc_api_url: "https://api.aa02-ocp.example.com:6443"
-    oc_api_token: "{{ OC_API_TOKEN }}"
+    src_oc_api_url: "https://api.src.example.openshift.com:6443"
+    src_oc_api_token: "{{ SRC_OC_API_TOKEN }}"
     # ... add the role-specific variables listed above ...
   roles:
     - dr_failback_prepare_forward_amr

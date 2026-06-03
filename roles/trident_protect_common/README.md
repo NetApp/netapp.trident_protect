@@ -19,21 +19,22 @@ The role does not ship opinionated defaults. The caller must provide the
 following variables (typically via `-e @your_vars.yml` or under `vars:` in the
 playbook):
 
-| Variable | Description |
-|----------|-------------|
-| `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. |
-| `oc_api_token` | Bearer token used to authenticate against the OpenShift API. |
-| `appvault_secret_name` | Name of the Kubernetes Secret holding ONTAP S3 credentials. |
-| `s3_access_key` | ONTAP S3 access key (stored in the Secret). |
-| `s3_secret_key` | ONTAP S3 secret key (stored in the Secret). |
-| `appvault_name` | Name of the Trident Protect AppVault to create. |
-| `ontap_s3_bucket_name` | ONTAP S3 bucket name backing the AppVault. |
-| `ontap_s3_endpoint` | ONTAP S3 endpoint (LIF IP/FQDN) backing the AppVault. |
-| `vm_namespace` | Namespace where the target VMs live. |
-| `vm_list` | List of VM names to label and include in the Application. |
-| `pvc_list` | List of PVC names associated with the VMs. |
-| `vm_label` | Label value applied to VMs and PVCs (`category=<vm_label>`). |
-| `application_name` | Trident Protect Application CR name for the VMs. |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. | Required |
+| `oc_api_token` | Bearer token used to authenticate against the OpenShift API. | Required |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `appvault_secret_name` | Name of the Kubernetes Secret holding ONTAP S3 credentials. | Required |
+| `s3_access_key` | ONTAP S3 access key (stored in the Secret). | Required |
+| `s3_secret_key` | ONTAP S3 secret key (stored in the Secret). | Required |
+| `appvault_name` | Name of the Trident Protect AppVault to create. | Required |
+| `ontap_s3_bucket_name` | ONTAP S3 bucket name backing the AppVault. | Required |
+| `ontap_s3_endpoint` | ONTAP S3 endpoint (LIF IP/FQDN) backing the AppVault. | Required |
+| `vm_namespace` | Namespace where the target VMs live. | Required |
+| `vm_list` | List of VM names to label and include in the Application. | Required |
+| `pvc_list` | List of PVC names associated with the VMs. | Required |
+| `vm_label` | Label value applied to VMs and PVCs (`category=<vm_label>`). | Required |
+| `application_name` | Trident Protect Application CR name for the VMs. | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.

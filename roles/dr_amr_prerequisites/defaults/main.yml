@@ -1,4 +1,5 @@
 ---
 # defaults file for dr_amr_prerequisites
-# This role has no opinionated defaults; all variables are expected to be
-# provided by the caller (see README.md for the full list).
+validate_certs: false
+src_scheduled_snapshot: false
+src_on_demand_snapshot: false

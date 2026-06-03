@@ -8,5 +8,21 @@
     # README.md for a full list.
     oc_api_url: https://api.example.openshift.com:6443
     oc_api_token: <your_api_token>
+    validate_certs: false
+    appvault_secret_name: s3-secret
+    s3_access_key: <s3_access_key>
+    s3_secret_key: <s3_secret_key>
+    appvault_name: appvault-ontap
+    ontap_s3_bucket_name: trident-protect-bucket
+    ontap_s3_endpoint: https://s3.example.com
+    vm_namespace: vm-namespace
+    vm_list:
+      - vm-1
+      - vm-2
+    pvc_list:
+      - pvc-1
+      - pvc-2
+    vm_label: app=my-vm
+    application_name: my-application
   roles:
     - trident_protect_common
