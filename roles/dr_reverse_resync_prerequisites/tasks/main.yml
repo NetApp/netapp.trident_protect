@@ -32,7 +32,7 @@
     src_k8s_auth: &src_k8s_auth
       host: "{{ src_oc_api_url | default(omit) }}"
       api_key: "{{ src_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Define anchor for destination OpenShift/Kubernetes API login info
 - name: Define anchor for destination OpenShift/Kubernetes API login info
@@ -40,7 +40,7 @@
     dst_k8s_auth: &dst_k8s_auth
       host: "{{ dst_oc_api_url | default(omit) }}"
       api_key: "{{ dst_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Pre-condition check: Verify that failed over VMs are running on the destination cluster before proceeding.
 - name: Verify failed over VMs are running on the destination cluster before proceeding with reverse resync prerequisites
@@ -253,13 +253,15 @@
   tags:
     - new_dst_src_appvault_verify
 
-# Validate that src_scheduled_snapshot and src_on_demand_snapshot are mutually exclusive
-- name: Validate that src_scheduled_snapshot and src_on_demand_snapshot are mutually exclusive
+# Validate snapshot mode: exactly one of src_scheduled_snapshot / src_on_demand_snapshot must be true.
+# Without a snapshot, the reverse-resync AMR (set up by dr_reverse_resync_config) has no baseline.
+- name: Validate snapshot mode (exactly one of src_scheduled_snapshot or src_on_demand_snapshot must be true)
   ansible.builtin.assert:
     that:
+      - (src_scheduled_snapshot | default(false) | bool) or (src_on_demand_snapshot | default(false) | bool)
       - not (src_scheduled_snapshot | default(false) | bool and src_on_demand_snapshot | default(false) | bool)
-    fail_msg: src_scheduled_snapshot and src_on_demand_snapshot cannot both be true. Set only one to true in vars/trident_protect_main.yml
-    success_msg: "Snapshot mode validated: only one of src_scheduled_snapshot or src_on_demand_snapshot is enabled"
+    fail_msg: Exactly one of src_scheduled_snapshot or src_on_demand_snapshot must be true. Set one (and only one) to true in vars/trident_protect_main.yml
+    success_msg: "Snapshot mode validated: exactly one of src_scheduled_snapshot or src_on_demand_snapshot is enabled"
   tags:
     - new_src_preflight
 

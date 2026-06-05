@@ -46,7 +46,7 @@
     src_k8s_auth: &src_k8s_auth
       host: "{{ src_oc_api_url | default(omit) }}"
       api_key: "{{ src_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Define anchor for destination OpenShift/Kubernetes API login info
 - name: Define anchor for destination OpenShift/Kubernetes API login info
@@ -54,7 +54,7 @@
     dst_k8s_auth: &dst_k8s_auth
       host: "{{ dst_oc_api_url | default(omit) }}"
       api_key: "{{ dst_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Disable protection schedules for the VM on the source (original destination) cluster to prevent any replication activities during the
 # failback preparation process.

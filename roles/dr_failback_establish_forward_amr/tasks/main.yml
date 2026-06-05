@@ -25,7 +25,7 @@
     src_k8s_auth: &src_k8s_auth
       host: "{{ src_oc_api_url | default(omit) }}"
       api_key: "{{ src_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Define anchor for destination OpenShift/Kubernetes API login info
 - name: Define anchor for destination OpenShift/Kubernetes API login info
@@ -33,7 +33,7 @@
     dst_k8s_auth: &dst_k8s_auth
       host: "{{ dst_oc_api_url | default(omit) }}"
       api_key: "{{ dst_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Prerequisites check - Verify that snapshots exist on the original source cluster before proceeding with AMR creation
 - name: Check for available snapshots on the original source cluster for application/namespace - {{ src_application_name ~ ' / ' ~ dst_vm_namespace }}

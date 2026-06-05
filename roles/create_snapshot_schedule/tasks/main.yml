@@ -23,7 +23,7 @@
     k8s_auth: &k8s_auth
       host: "{{ oc_api_url | default(omit) }}"
       api_key: "{{ oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Create snapshot schedule for specific VMs in a namespace by using corresponding application
 - name: >-

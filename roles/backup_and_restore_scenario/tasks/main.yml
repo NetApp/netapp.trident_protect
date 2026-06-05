@@ -21,13 +21,22 @@
     - vm_list
     - pvc_list
 
+# Verify list variables are non-empty (the fail-loop above only catches undefined/empty-string values)
+- name: Verify list variables are non-empty
+  ansible.builtin.assert:
+    that:
+      - vm_list is sequence and vm_list | length > 0
+      - pvc_list is sequence and pvc_list | length > 0
+    fail_msg: vm_list and pvc_list must be non-empty lists.
+    success_msg: List variables validated successfully
+
 # Define anchor for OpenShift/Kubernetes API login info
 - name: Define anchor for OpenShift/Kubernetes API login info
   ansible.builtin.set_fact:
     k8s_auth: &k8s_auth
       host: "{{ oc_api_url | default(omit) }}"
       api_key: "{{ oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Create on-demand backup of specific VMs in a namespace by using corresponding application
 - name: >-
