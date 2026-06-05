@@ -4,8 +4,6 @@
   gather_facts: false
   connection: local
   vars:
-    # Provide all required variables for the role here. See the role
-    # README.md for a full list.
     src_oc_api_url: https://api.src.example.openshift.com:6443
     src_oc_api_token: <your_src_api_token>
     dst_oc_api_url: https://api.dst.example.openshift.com:6443
@@ -18,7 +16,7 @@
     dst_vm_namespace: dst-vm-namespace
     appmirrorrelationship_specs:
       name: app-mirror-relationship
-      storage_class: ontap-san-sc
+      storage_class: ontap-nfs-sc
       namespaceMapping:
         - source: src-vm-namespace
           destination: dst-vm-namespace

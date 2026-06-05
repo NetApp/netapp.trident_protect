@@ -19,6 +19,9 @@
     - application_name
     - vm_namespace
     - snapshotinplacerestore_name
+    - vm_list
+    - pvc_list
+    - vm_label
 
 # Define anchor for OpenShift/Kubernetes API login info
 - name: Define anchor for OpenShift/Kubernetes API login info

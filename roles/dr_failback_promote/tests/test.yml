@@ -17,6 +17,8 @@
     dst_appvault_name: dst-appvault-ontap
     src_application_name: my-application
     shutdown_snapshot_name: shutdown-snapshot
+    src_snapshot_schedule_specs:
+      name: snapshot-schedule
     appmirrorrelationship_specs:
       name: app-mirror-relationship
       storage_class: ontap-san-sc

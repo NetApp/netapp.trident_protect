@@ -4,8 +4,6 @@
   gather_facts: false
   connection: local
   vars:
-    # Provide all required variables for the role here. See the role
-    # README.md for a full list.
     src_oc_api_url: https://api.src.example.openshift.com:6443
     src_oc_api_token: <your_src_api_token>
     dst_oc_api_url: https://api.dst.example.openshift.com:6443
@@ -22,7 +20,7 @@
     src_pvc_list:
       - pvc-1
       - pvc-2
-    src_vm_label: app=my-vm
+    src_vm_label: protect-vms
     src_scheduled_snapshot: true
     src_on_demand_snapshot: false
     src_snapshot_schedule_specs:

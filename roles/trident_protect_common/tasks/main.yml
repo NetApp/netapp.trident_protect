@@ -16,7 +16,7 @@
     k8s_auth: &k8s_auth
       host: "{{ oc_api_url | default(omit) }}"
       api_key: "{{ oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Verify Trident Protect installation
 - name: Check if trident-protect namespace exists

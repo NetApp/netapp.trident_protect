@@ -36,9 +36,14 @@ playbook):
 | `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
 | `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
 | `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
-| `appmirrorrelationship_specs` | AMR specs (uses `name`). | Required |
+| `appmirrorrelationship_specs` | AMR specs dict with `name`, `storage_class`, and `recurrence_rule` (`dtstart`, `rrule`). | Required |
 | `src_vm_namespace` | Original source namespace. | Required |
 | `dst_vm_namespace` | Original destination namespace. | Required |
+| `src_appvault_name` | AppVault on the original source cluster. | Required |
+| `dst_appvault_name` | AppVault on the original destination cluster. | Required |
+| `src_application_name` | Source Application CR name. | Required |
+| `shutdown_snapshot_name` | Name of the ShutdownSnapshot CR to create before failback. | Required |
+| `src_snapshot_schedule_specs` | Dict with `name` of the Schedule CR to remove on the destination cluster. Required (no default guard). | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.
