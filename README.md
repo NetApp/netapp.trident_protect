@@ -55,7 +55,7 @@ The collection ships several roles that are designed to be composed into
 end-to-end workflows. Each role's README documents its inputs in detail; the
 workflows/ diagrams below show the order in which roles are typically run.
 
-### Common prerequisite
+### Common prerequisites
 
 The [`trident_protect_common`](roles/trident_protect_common/README.md) role
 creates the shared objects (Secret, AppVault, Application CR, VM/PVC labels)
@@ -95,7 +95,7 @@ reverse resync → failback) is:
 > steps 1–2.
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[dr_amr_prerequisites] --> B[dr_amr_config]
     B --> C[dr_failover]
     C --> D[dr_reverse_resync_prerequisites]
