@@ -6,3 +6,31 @@ on: [workflow_call] # allow this workflow to be called from other workflows
 jobs:
   sanity:
     uses: ansible-network/github_actions/.github/workflows/sanity.yml@main
+    with:
+      # Override the upstream matrix_exclude default to drop the
+      # `devel + python 3.12` combination. ansible-core `devel` now requires
+      # Python >= 3.13, so installing it on 3.12 fails with:
+      #   ERROR: Package 'ansible-core' requires a different Python:
+      #   3.12.x not in '>=3.13'
+      # All other entries below match the upstream default
+      # (ansible-network/github_actions sanity.yml @ main) and must be
+      # kept in sync if/when upstream changes them.
+      matrix_exclude: >-
+        [
+          {"ansible-version": "devel", "python-version": "3.12"},
+          {"ansible-version": "devel", "python-version": "3.11"},
+          {"ansible-version": "devel", "python-version": "3.10"},
+          {"ansible-version": "stable-2.21", "python-version": "3.11"},
+          {"ansible-version": "stable-2.21", "python-version": "3.10"},
+          {"ansible-version": "stable-2.20", "python-version": "3.11"},
+          {"ansible-version": "stable-2.20", "python-version": "3.10"},
+          {"ansible-version": "stable-2.19", "python-version": "3.14"},
+          {"ansible-version": "stable-2.19", "python-version": "3.10"},
+          {"ansible-version": "stable-2.18", "python-version": "3.14"},
+          {"ansible-version": "stable-2.18", "python-version": "3.10"},
+          {"ansible-version": "stable-2.17", "python-version": "3.14"},
+          {"ansible-version": "stable-2.17", "python-version": "3.13"},
+          {"ansible-version": "stable-2.16", "python-version": "3.14"},
+          {"ansible-version": "stable-2.16", "python-version": "3.13"},
+          {"ansible-version": "stable-2.16", "python-version": "3.12"}
+        ]
