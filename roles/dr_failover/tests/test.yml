@@ -11,9 +11,6 @@
     validate_certs: false
     src_vm_namespace: src-vm-namespace
     dst_vm_namespace: dst-vm-namespace
-    src_vm_list:
-      - vm-1
-      - vm-2
     src_vm_label: protect-vms
     src_appvault_name: src-appvault-ontap
     dst_appvault_name: dst-appvault-ontap

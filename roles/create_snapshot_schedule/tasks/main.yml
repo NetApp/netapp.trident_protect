@@ -15,6 +15,7 @@
     - vm_namespace
     - snapshot_granularity
     - snapshot_retention_count
+    - snapshot_minute
 
 # Define anchor for OpenShift/Kubernetes API login info
 - name: Define anchor for OpenShift/Kubernetes API login info

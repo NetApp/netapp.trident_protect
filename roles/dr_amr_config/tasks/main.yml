@@ -13,6 +13,11 @@
     - src_oc_api_token
     - dst_oc_api_url
     - dst_oc_api_token
+    - src_application_name
+    - src_vm_namespace
+    - dst_vm_namespace
+    - src_appvault_name
+    - dst_appvault_name
 
 # Define anchor for source OpenShift/Kubernetes API login info
 - name: Define anchor for source OpenShift/Kubernetes API login info

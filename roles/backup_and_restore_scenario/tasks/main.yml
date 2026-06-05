@@ -18,6 +18,8 @@
     - on_demand_backup_name
     - restore_namespace
     - backuprestore_name
+    - vm_list
+    - pvc_list
 
 # Define anchor for OpenShift/Kubernetes API login info
 - name: Define anchor for OpenShift/Kubernetes API login info

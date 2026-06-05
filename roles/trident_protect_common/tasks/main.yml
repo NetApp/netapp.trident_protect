@@ -9,6 +9,17 @@
   loop:
     - oc_api_url
     - oc_api_token
+    - appvault_secret_name
+    - s3_access_key
+    - s3_secret_key
+    - appvault_name
+    - ontap_s3_bucket_name
+    - ontap_s3_endpoint
+    - vm_namespace
+    - vm_list
+    - pvc_list
+    - vm_label
+    - application_name
 
 # Define anchor for OpenShift/Kubernetes API login info
 - name: Define anchor for OpenShift/Kubernetes API login info

@@ -12,6 +12,19 @@
     - src_oc_api_token
     - dst_oc_api_url
     - dst_oc_api_token
+    - dst_vm_namespace
+    - src_vm_label
+    - src_application_name
+
+# Validate appmirrorrelationship_specs.name (used unconditionally to delete the AMR on the destination cluster)
+- name: Validate appmirrorrelationship_specs.name is defined
+  ansible.builtin.assert:
+    that:
+      - appmirrorrelationship_specs is defined
+      - appmirrorrelationship_specs is mapping
+      - appmirrorrelationship_specs.name is defined and appmirrorrelationship_specs.name | default('') | trim | length > 0
+    fail_msg: appmirrorrelationship_specs.name is not defined.
+    success_msg: appmirrorrelationship_specs.name validated successfully
 
 # Define anchor for source OpenShift/Kubernetes API login info
 - name: Define anchor for source OpenShift/Kubernetes API login info
@@ -53,6 +66,19 @@
 
 # Delete the Snapshot schedule if any running on the original primary (source cluster) before executing the reverse resync prerequisites tasks.
 # This is required to avoid snapshot creation during reverse resync which can cause reverse resync failure.
+- name: Validate variables for source-side Schedule cleanup
+  ansible.builtin.assert:
+    that:
+      - src_vm_namespace is defined and src_vm_namespace | default('') | trim | length > 0
+      - src_snapshot_schedule_specs is defined
+      - src_snapshot_schedule_specs is mapping
+      - src_snapshot_schedule_specs.name is defined and src_snapshot_schedule_specs.name | default('') | trim | length > 0
+    fail_msg: src_vm_namespace and src_snapshot_schedule_specs.name are required when src_scheduled_snapshot is true.
+    success_msg: Variables for source-side Schedule cleanup validated successfully
+  when: src_scheduled_snapshot | default(false) | bool
+  tags:
+    - delete_src_snapshot_schedule
+
 - name: Delete Snapshot schedule on the original source cluster if any before executing the reverse resync prerequisites tasks
   kubernetes.core.k8s:
     <<: *src_k8s_auth

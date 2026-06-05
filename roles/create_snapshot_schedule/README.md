@@ -42,10 +42,10 @@ playbook):
 | `snapshot_schedule_name` | Name of the Schedule CR to create. | Required |
 | `snapshot_retention_count` | Number of snapshots to retain. | Required |
 | `snapshot_granularity` | Granularity of the snapshot schedule (Hourly, Daily, Weekly, Monthly). | Required |
-| `snapshot_hour` | Hour of day for Daily/Weekly/Monthly snapshots (0-23). | Required |
-| `snapshot_minute` | Minute of hour for snapshots (0-59). | Required |
-| `snapshot_day_of_month` | Day of the month for Monthly snapshots (1-31). | Required |
-| `snapshot_day_of_week` | Day of the week for Weekly snapshots (0-6). | Required |
+| `snapshot_minute` | Minute of hour for snapshots (0-59). Required for all granularities. | Required |
+| `snapshot_hour` | Hour of day for snapshots (0-23). Required for Daily/Weekly/Monthly. | Conditional |
+| `snapshot_day_of_week` | Day of the week (0-6). Required for Weekly. | Conditional |
+| `snapshot_day_of_month` | Day of the month (1-31). Required for Monthly. | Conditional |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.
