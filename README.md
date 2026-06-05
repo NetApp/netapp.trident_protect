@@ -1,6 +1,6 @@
 [![CI](https://github.com/NetApp/netapp.trident_protect/workflows/CI/badge.svg?event=push)](https://github.com/NetApp/netapp.trident_protect/actions)
 
-# Ansible Validated Content Collection for NetApp Trident Protect
+# Ansible Validated Content Collection for NetApp Trident Protect Content
 
 This collection includes a variety of validated Ansible Roles to automate and manage Day-2 use cases involving NetApp Trident Protect in a Red Hat OpenShift Virtualization environment. It covers common application data management workflows such as Backup and Restore, Snapshot scheduling and Restore, and Disaster Recovery (SnapMirror Replication, Failover, Reverse Resync, and Failback).
 
