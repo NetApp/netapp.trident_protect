@@ -17,13 +17,25 @@
     - dst_oc_api_url
     - dst_oc_api_token
 
+# Validate snapshot mode: exactly one of src_scheduled_snapshot / src_on_demand_snapshot must be true.
+# Without a snapshot, the next role (dr_amr_config) has no baseline to establish the AppMirrorRelationship.
+- name: Validate snapshot mode (exactly one of src_scheduled_snapshot or src_on_demand_snapshot must be true)
+  ansible.builtin.assert:
+    that:
+      - (src_scheduled_snapshot | default(false) | bool) or (src_on_demand_snapshot | default(false) | bool)
+      - not (src_scheduled_snapshot | default(false) | bool and src_on_demand_snapshot | default(false) | bool)
+    fail_msg: Exactly one of src_scheduled_snapshot or src_on_demand_snapshot must be true. Set one (and only one) to true in vars/trident_protect_main.yml
+    success_msg: "Snapshot mode validated: exactly one of src_scheduled_snapshot or src_on_demand_snapshot is enabled"
+  tags:
+    - src_preflight
+
 # Define anchor for source OpenShift/Kubernetes API login info
 - name: Define anchor for source OpenShift/Kubernetes API login info
   ansible.builtin.set_fact:
     src_k8s_auth: &src_k8s_auth
       host: "{{ src_oc_api_url | default(omit) }}"
       api_key: "{{ src_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Define anchor for destination OpenShift/Kubernetes API login info
 - name: Define anchor for destination OpenShift/Kubernetes API login info
@@ -31,7 +43,7 @@
     dst_k8s_auth: &dst_k8s_auth
       host: "{{ dst_oc_api_url | default(omit) }}"
       api_key: "{{ dst_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Preflight validation - Validate variables for secret creation and AppVault setup on the source cluster
 - name: Validate variables for secret creation and AppVault setup on the source cluster

@@ -16,6 +16,29 @@
     - src_oc_api_token
     - dst_oc_api_url
     - dst_oc_api_token
+    - src_vm_namespace
+    - dst_vm_namespace
+    - src_appvault_name
+    - dst_appvault_name
+    - src_application_name
+    - shutdown_snapshot_name
+
+# Validate src_snapshot_schedule_specs structure (used unconditionally to delete a Schedule on the destination cluster)
+- name: Validate src_snapshot_schedule_specs is defined with required keys
+  ansible.builtin.assert:
+    that:
+      - src_snapshot_schedule_specs is defined
+      - src_snapshot_schedule_specs is mapping
+      - src_snapshot_schedule_specs.name is defined and src_snapshot_schedule_specs.name | default('') | trim | length > 0
+      - appmirrorrelationship_specs is defined
+      - appmirrorrelationship_specs is mapping
+      - appmirrorrelationship_specs.name is defined and appmirrorrelationship_specs.name | default('') | trim | length > 0
+      - appmirrorrelationship_specs.storage_class is defined and appmirrorrelationship_specs.storage_class | default('') | trim | length > 0
+      - appmirrorrelationship_specs.recurrence_rule is defined and appmirrorrelationship_specs.recurrence_rule is mapping
+      - appmirrorrelationship_specs.recurrence_rule.dtstart is defined and appmirrorrelationship_specs.recurrence_rule.dtstart | default('') | trim | length > 0
+      - appmirrorrelationship_specs.recurrence_rule.rrule is defined and appmirrorrelationship_specs.recurrence_rule.rrule | default('') | trim | length > 0
+    fail_msg: src_snapshot_schedule_specs and appmirrorrelationship_specs are not properly defined.
+    success_msg: Required spec dicts validated successfully
 
 # Define anchor for source OpenShift/Kubernetes API login info
 - name: Define anchor for source OpenShift/Kubernetes API login info
@@ -23,7 +46,7 @@
     src_k8s_auth: &src_k8s_auth
       host: "{{ src_oc_api_url | default(omit) }}"
       api_key: "{{ src_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Define anchor for destination OpenShift/Kubernetes API login info
 - name: Define anchor for destination OpenShift/Kubernetes API login info
@@ -31,7 +54,7 @@
     dst_k8s_auth: &dst_k8s_auth
       host: "{{ dst_oc_api_url | default(omit) }}"
       api_key: "{{ dst_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Disable protection schedules for the VM on the source (original destination) cluster to prevent any replication activities during the
 # failback preparation process.

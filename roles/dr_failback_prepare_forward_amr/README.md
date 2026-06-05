@@ -36,14 +36,13 @@ playbook):
 | `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
 | `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
 | `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
-| `appmirrorrelationship_specs` | AMR specs (uses `name`). | Required |
-| `src_appvault_name` | AppVault on the original source cluster. | Required |
-| `dst_appvault_name` | AppVault on the original destination cluster. | Required |
+| `appmirrorrelationship_specs` | AMR specs dict (uses `name`) - the AMR on the new destination cluster is deleted before re-creating the forward AMR. | Required |
 | `src_vm_namespace` | Original source namespace. | Required |
 | `dst_vm_namespace` | Original destination namespace. | Required |
-| `src_application_name` | Source application name. | Required |
+| `src_appvault_name` | AppVault on the original source cluster. Required when `src_scheduled_snapshot` or `src_on_demand_snapshot` is `true`. | — |
+| `src_application_name` | Source application name. Required when `src_scheduled_snapshot` or `src_on_demand_snapshot` is `true`. | — |
+| `src_snapshot_schedule_specs` | Dict with `name` of the Schedule CR to delete on the new destination cluster (used unconditionally). When `src_scheduled_snapshot` is `true`, also requires `snapshot_reclaim_policy`, `retention_count`, `recurrence_rule` (`dtstart`, `rrule`). | Required |
 | `src_scheduled_snapshot` | Set to `true` to create a snapshot Schedule on the source cluster before forward AMR. | `false` |
-| `src_snapshot_schedule_specs` | Dict with `name`, `snapshot_reclaim_policy`, `retention_count`, `recurrence_rule` (`dtstart`, `rrule`). Required when `src_scheduled_snapshot` is `true`. | — |
 | `src_on_demand_snapshot` | Set to `true` to take an on-demand snapshot before forward AMR. | `false` |
 | `src_on_demand_snapshot_specs` | Dict with `name` and `reclaim_policy` for the on-demand snapshot. Required when `src_on_demand_snapshot` is `true`. | — |
 

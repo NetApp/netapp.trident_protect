@@ -37,12 +37,15 @@ playbook):
 | `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
 | `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
 | `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
-| `appmirrorrelationship_specs` | AMR specs (uses `name`). | Required |
+| `appmirrorrelationship_specs` | AMR specs dict with `name`, `storage_class`, and `recurrence_rule` (`dtstart`, `rrule`). | Required |
 | `src_vm_namespace` | Source namespace (used during simulated disaster). | Required |
 | `dst_vm_namespace` | Destination namespace where VMs are failed over. | Required |
-| `src_vm_list` | List of source VMs. | Required |
 | `src_vm_label` | Label used to filter source VMs/PVCs. | Required |
+| `src_appvault_name` | AppVault on the source cluster. | Required |
+| `dst_appvault_name` | AppVault on the destination cluster. | Required |
+| `src_application_name` | Source Application CR name. | Required |
 | `simulate_disaster` | Set to `true` to stop and delete source VMs to simulate a disaster. | `false` |
+| `src_snapshot_schedule_specs` | Dict with `name` of the Schedule CR to delete during disaster simulation. Required when `simulate_disaster` is `true`. | — |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.

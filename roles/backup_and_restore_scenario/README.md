@@ -44,7 +44,6 @@ playbook):
 | `backuprestore_name` | Name of the BackupRestore CR used for restoration. | Required |
 | `vm_list` | List of VM names (used during validation/restore). | Required |
 | `pvc_list` | List of PVC names associated with the VMs. | Required |
-| `vm_label` | Label value applied to VMs and PVCs. | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.

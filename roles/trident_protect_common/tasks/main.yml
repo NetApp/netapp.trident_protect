@@ -9,6 +9,26 @@
   loop:
     - oc_api_url
     - oc_api_token
+    - appvault_secret_name
+    - s3_access_key
+    - s3_secret_key
+    - appvault_name
+    - ontap_s3_bucket_name
+    - ontap_s3_endpoint
+    - vm_namespace
+    - vm_list
+    - pvc_list
+    - vm_label
+    - application_name
+
+# Verify list variables are non-empty (the fail-loop above only catches undefined/empty-string values)
+- name: Verify list variables are non-empty
+  ansible.builtin.assert:
+    that:
+      - vm_list is sequence and vm_list | length > 0
+      - pvc_list is sequence and pvc_list | length > 0
+    fail_msg: vm_list and pvc_list must be non-empty lists.
+    success_msg: List variables validated successfully
 
 # Define anchor for OpenShift/Kubernetes API login info
 - name: Define anchor for OpenShift/Kubernetes API login info
@@ -16,7 +36,7 @@
     k8s_auth: &k8s_auth
       host: "{{ oc_api_url | default(omit) }}"
       api_key: "{{ oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Verify Trident Protect installation
 - name: Check if trident-protect namespace exists

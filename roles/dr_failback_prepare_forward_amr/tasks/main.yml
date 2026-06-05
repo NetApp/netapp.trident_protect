@@ -13,6 +13,31 @@
     - src_oc_api_token
     - dst_oc_api_url
     - dst_oc_api_token
+    - src_vm_namespace
+    - dst_vm_namespace
+
+# Validate snapshot mode: exactly one of src_scheduled_snapshot / src_on_demand_snapshot must be true.
+# Without a snapshot, the forward AMR re-established by dr_failback_establish_forward_amr has no baseline.
+- name: Validate snapshot mode (exactly one of src_scheduled_snapshot or src_on_demand_snapshot must be true)
+  ansible.builtin.assert:
+    that:
+      - (src_scheduled_snapshot | default(false) | bool) or (src_on_demand_snapshot | default(false) | bool)
+      - not (src_scheduled_snapshot | default(false) | bool and src_on_demand_snapshot | default(false) | bool)
+    fail_msg: Exactly one of src_scheduled_snapshot or src_on_demand_snapshot must be true. Set one (and only one) to true in vars/trident_protect_main.yml
+    success_msg: "Snapshot mode validated: exactly one of src_scheduled_snapshot or src_on_demand_snapshot is enabled"
+
+# Validate spec dicts used unconditionally to delete the existing Schedule and AMR on the new destination cluster
+- name: Validate appmirrorrelationship_specs and src_snapshot_schedule_specs are defined with required keys
+  ansible.builtin.assert:
+    that:
+      - appmirrorrelationship_specs is defined
+      - appmirrorrelationship_specs is mapping
+      - appmirrorrelationship_specs.name is defined and appmirrorrelationship_specs.name | default('') | trim | length > 0
+      - src_snapshot_schedule_specs is defined
+      - src_snapshot_schedule_specs is mapping
+      - src_snapshot_schedule_specs.name is defined and src_snapshot_schedule_specs.name | default('') | trim | length > 0
+    fail_msg: appmirrorrelationship_specs and src_snapshot_schedule_specs are not properly defined.
+    success_msg: Required spec dicts validated successfully
 
 # Define anchor for source OpenShift/Kubernetes API login info
 - name: Define anchor for source OpenShift/Kubernetes API login info
@@ -20,7 +45,7 @@
     src_k8s_auth: &src_k8s_auth
       host: "{{ src_oc_api_url | default(omit) }}"
       api_key: "{{ src_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Define anchor for destination OpenShift/Kubernetes API login info
 - name: Define anchor for destination OpenShift/Kubernetes API login info
@@ -28,7 +53,7 @@
     dst_k8s_auth: &dst_k8s_auth
       host: "{{ dst_oc_api_url | default(omit) }}"
       api_key: "{{ dst_oc_api_token | default(omit) }}"
-      validate_certs: "{{ validate_certs | default(false) }}"
+      validate_certs: "{{ validate_certs }}"
 
 # Remove any protection schedules remaining on the new destination cluster (original source cluster) that were used for replication
 # to the original destination cluster to ensure there are no conflicts or unintended replication activities during the failback process.

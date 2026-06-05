@@ -35,18 +35,17 @@ playbook):
 | `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
 | `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
 | `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
-| `src_ontap_s3_specs` | Source ONTAP S3 specs dict (re-used to recreate Secret/AppVault on the new source cluster). | Required |
-| `dst_ontap_s3_specs` | Destination ONTAP S3 specs dict. | Required |
-| `src_appvault_name` | AppVault name for the source application. | Required |
-| `dst_appvault_name` | AppVault name for the destination application. | Required |
+| `dst_ontap_s3_specs` | Destination ONTAP S3 specs dict (re-used to recreate Secret/AppVault on the new source cluster). | Required |
+| `dst_appvault_name` | AppVault name for the destination application (re-created on new source cluster). | Required |
 | `src_application_name` | Source application name. | Required |
-| `src_vm_namespace` | Original source namespace. | Required |
+| `src_vm_namespace` | Original source namespace (used to delete the source-side Schedule during cleanup). Required when `src_scheduled_snapshot` is `true`. | — |
 | `dst_vm_namespace` | Destination namespace (new source after failover). | Required |
+| `src_vm_label` | Label used to find failed-over VMs on the destination cluster. | Required |
+| `appmirrorrelationship_specs` | AMR specs dict (uses `name`) - the AMR on the original destination cluster is deleted to prepare for reverse resync. | Required |
 | `src_on_demand_snapshot` | Set to `true` for an on-demand snapshot of the new source. | `false` |
 | `src_on_demand_snapshot_specs` | On-demand snapshot specs dict (`name`, `reclaim_policy`). Required when `src_on_demand_snapshot` is `true`. | — |
 | `src_scheduled_snapshot` | Set to `true` to create a snapshot Schedule on the new source. | `false` |
 | `src_snapshot_schedule_specs` | Snapshot schedule specs dict (`name`, `snapshot_reclaim_policy`, `retention_count`, `recurrence_rule`). Required when `src_scheduled_snapshot` is `true`. | — |
-| `shutdown_snapshot_name` | Name of the shutdown snapshot to create on the new source before failback. | Required |
 
 > Note: Sensitive values (API tokens, S3 credentials) should be stored in an
 > Ansible Vault file rather than committed in plain text.

@@ -4,8 +4,6 @@
   gather_facts: false
   connection: local
   vars:
-    # Provide all required variables for the role here. See the role
-    # README.md for a full list.
     oc_api_url: https://api.example.openshift.com:6443
     oc_api_token: <your_api_token>
     validate_certs: false
@@ -22,7 +20,7 @@
     pvc_list:
       - pvc-1
       - pvc-2
-    vm_label: app=my-vm
+    vm_label: protect-vms
     application_name: my-application
   roles:
     - trident_protect_common

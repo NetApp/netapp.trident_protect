@@ -12,7 +12,6 @@
     dst_oc_api_token: <your_dst_api_token>
     validate_certs: false
     src_appvault_name: src-appvault-ontap
-    dst_appvault_name: dst-appvault-ontap
     src_application_name: my-application
     src_vm_namespace: src-vm-namespace
     dst_vm_namespace: dst-vm-namespace
