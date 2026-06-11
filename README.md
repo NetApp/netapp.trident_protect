@@ -106,7 +106,7 @@ reverse resync → failback) is:
 >   at the customer's discretion:
 >   - **Immediate failback**: If downtime on the destination cluster is acceptable
 >     right away, proceed directly from step 5 to steps 6–8.
->   - **Deferred failback**: If the workloads must keep running on the destination
+>   - **Deferred failback**: If the VMs must keep running on the destination
 >     cluster without interruption, complete steps 4–5 now to restore data
 >     protection, then execute steps 6–8 during a planned maintenance window when
 >     downtime can be accommodated.

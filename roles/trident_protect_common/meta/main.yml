@@ -3,7 +3,7 @@ galaxy_info:
   role_name: trident_protect_common
   namespace: netapp
   author: Kamini Singh
-  description: Common Trident Protect tasks (Secret, AppVault, Application, labeling) shared by Backup/Restore and Snapshot/Restore scenarios.
+  description: Common Trident Protect tasks (Secret, AppVault, Application, labeling VMs/PVCs) shared by Backup/Restore and Snapshot/Restore scenarios.
   company: NetApp
   license: Apache-2.0
   min_ansible_version: "2.16"
