@@ -1,5 +1,5 @@
 ---
 # defaults file for dr_reverse_resync_prerequisites
-validate_certs: false
+validate_certs: true
 src_scheduled_snapshot: false
 src_on_demand_snapshot: false

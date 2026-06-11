@@ -35,7 +35,7 @@ playbook):
 |----------|-------------|---------|
 | `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. | Required |
 | `oc_api_token` | Bearer token used to authenticate against the OpenShift API. | Required |
-| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. Set to `false` only for clusters with self-signed certificates; disabling validation exposes credentials to MITM attacks. | `true` |
 | `appvault_name` | Trident Protect AppVault used to store the backup. | Required |
 | `application_name` | Trident Protect Application that is backed up. | Required |
 | `vm_namespace` | Namespace containing the source VMs. | Required |

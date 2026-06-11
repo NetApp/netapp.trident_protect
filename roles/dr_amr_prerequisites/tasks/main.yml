@@ -206,6 +206,7 @@
   kubernetes.core.k8s:
     <<: *src_k8s_auth
     state: present
+    api_version: kubevirt.io/v1
     kind: VirtualMachine
     name: "{{ item }}"
     namespace: "{{ src_vm_namespace }}"
@@ -225,6 +226,7 @@
   kubernetes.core.k8s:
     <<: *src_k8s_auth
     state: present
+    api_version: v1
     kind: PersistentVolumeClaim
     name: "{{ item }}"
     namespace: "{{ src_vm_namespace }}"
@@ -242,6 +244,7 @@
 - name: Verify labels on VMs in source namespace {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
     <<: *src_k8s_auth
+    api_version: kubevirt.io/v1
     namespace: "{{ src_vm_namespace }}"
     kind: VirtualMachine
     name: "{{ item }}"
@@ -264,6 +267,7 @@
 - name: Verify labels on PVCs in source namespace {{ src_vm_namespace }}
   kubernetes.core.k8s_info:
     <<: *src_k8s_auth
+    api_version: v1
     namespace: "{{ src_vm_namespace }}"
     kind: PersistentVolumeClaim
     name: "{{ item }}"
@@ -436,6 +440,12 @@
     name: "{{ src_on_demand_snapshot_specs.name }}"
     namespace: "{{ src_vm_namespace }}"
   register: src_on_demand_snapshot_info
+  until: >
+    src_on_demand_snapshot_info.resources | length > 0 and
+    src_on_demand_snapshot_info.resources[0].status.state is defined and
+    src_on_demand_snapshot_info.resources[0].status.state == "Completed"
+  retries: 30
+  delay: 10
   changed_when: false
   when: src_on_demand_snapshot | default(false)
   tags:

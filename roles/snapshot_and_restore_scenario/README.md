@@ -40,7 +40,7 @@ playbook):
 |----------|-------------|---------|
 | `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. | Required |
 | `oc_api_token` | Bearer token used to authenticate against the OpenShift API. | Required |
-| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. Set to `false` only for clusters with self-signed certificates; disabling validation exposes credentials to MITM attacks. | `true` |
 | `appvault_name` | AppVault used by the snapshot/restore. | Required |
 | `application_name` | Application whose snapshots are restored. | Required |
 | `vm_namespace` | Namespace where VMs are restored in place. | Required |

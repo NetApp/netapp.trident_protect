@@ -33,7 +33,7 @@ playbook):
 | `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). | Required |
 | `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
 | `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
-| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. Set to `false` only for clusters with self-signed certificates; disabling validation exposes credentials to MITM attacks. | `true` |
 | `src_ontap_s3_specs` | Dict with `secret_name`, `access_key`, `secret_key`, `s3_bucket_name`, `s3_endpoint` for the source ONTAP S3 backend. | Required |
 | `dst_ontap_s3_specs` | Dict with `secret_name`, `access_key`, `secret_key`, `s3_bucket_name`, `s3_endpoint` for the destination ONTAP S3 backend. | Required |
 | `src_appvault_name` | AppVault name for the source application. | Required |
