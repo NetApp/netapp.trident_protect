@@ -23,7 +23,7 @@ playbook):
 |----------|-------------|---------|
 | `oc_api_url` | OpenShift/Kubernetes API server URL of the target cluster. | Required |
 | `oc_api_token` | Bearer token used to authenticate against the OpenShift API. | Required |
-| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. Set to `false` only for clusters with self-signed certificates; disabling validation exposes credentials to MITM attacks. | `true` |
 | `appvault_secret_name` | Name of the Kubernetes Secret holding ONTAP S3 credentials. | Required |
 | `s3_access_key` | ONTAP S3 access key (stored in the Secret). | Required |
 | `s3_secret_key` | ONTAP S3 secret key (stored in the Secret). | Required |

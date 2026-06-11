@@ -36,7 +36,7 @@ playbook):
 | `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). | Required |
 | `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
 | `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
-| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. Set to `false` only for clusters with self-signed certificates; disabling validation exposes credentials to MITM attacks. | `true` |
 | `appmirrorrelationship_specs` | AMR specs dict with `name`, `storage_class`, and `recurrence_rule` (`dtstart`, `rrule`). | Required |
 | `src_vm_namespace` | Source namespace (used during simulated disaster). | Required |
 | `dst_vm_namespace` | Destination namespace where VMs are failed over. | Required |

@@ -35,7 +35,7 @@ playbook):
 | `src_oc_api_token` | Source OpenShift cluster bearer token (DR scenarios). | Required |
 | `dst_oc_api_url` | Destination OpenShift cluster API server URL (DR scenarios). | Required |
 | `dst_oc_api_token` | Destination OpenShift cluster bearer token (DR scenarios). | Required |
-| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. | `false` |
+| `validate_certs` | Whether to validate TLS certificates when connecting to the OpenShift/Kubernetes API. Set to `false` only for clusters with self-signed certificates; disabling validation exposes credentials to MITM attacks. | `true` |
 | `src_appvault_name` | AppVault on the source cluster. | Required |
 | `dst_appvault_name` | AppVault on the destination cluster. | Required |
 | `src_application_name` | Source Application referenced by the AMR. | Required |

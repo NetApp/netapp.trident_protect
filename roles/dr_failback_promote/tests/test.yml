@@ -10,6 +10,8 @@
     src_oc_api_token: <your_src_api_token>
     dst_oc_api_url: https://api.dst.example.openshift.com:6443
     dst_oc_api_token: <your_dst_api_token>
+    # Explicit opt-out: example.openshift.com placeholder + lab clusters typically use self-signed certs.
+    # The collection default is true; only set this to false intentionally.
     validate_certs: false
     src_vm_namespace: src-vm-namespace
     dst_vm_namespace: dst-vm-namespace

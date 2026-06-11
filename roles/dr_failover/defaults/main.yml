@@ -1,4 +1,4 @@
 ---
 # defaults file for dr_failover
-validate_certs: false
+validate_certs: true
 simulate_disaster: false
