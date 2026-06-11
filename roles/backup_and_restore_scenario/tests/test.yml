@@ -19,6 +19,5 @@
     pvc_list:
       - pvc-1
       - pvc-2
-
   roles:
     - backup_and_restore_scenario
