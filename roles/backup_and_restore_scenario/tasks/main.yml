@@ -65,7 +65,9 @@
     - tp_create_ondemand_backup
 
 # Wait for the backup to complete
-# Note: Adjust retries and delay as needed based on expected backup duration
+# Note: Adjust retries and delay as needed based on expected backup duration.
+# We also wait for status.appArchivePath to be populated, since it can lag behind
+# the state flipping to "Completed" and is required to create the BackupRestore CR.
 - name: Wait for the backup to complete
   kubernetes.core.k8s_info:
     <<: *k8s_auth
@@ -79,6 +81,7 @@
     - backup_info.resources[0].status is defined
     - backup_info.resources[0].status.state is defined
     - backup_info.resources[0].status.state == "Completed"
+    - backup_info.resources[0].status.appArchivePath | default('') | length > 0
   retries: 10
   delay: 30
   when:
@@ -141,7 +144,7 @@
         name: "{{ backuprestore_name | default('') }}"
       spec:
         appVaultRef: "{{ appvault_name | default('') }}"
-        appArchivePath: "{{ backup_output.resources[0].status.appArchivePath | default('') }}"
+        appArchivePath: "{{ backup_output.resources[0].status.appArchivePath }}"
         backupRef: "{{ on_demand_backup_name | default('') }}"
         namespaceMapping: [{ source: "{{ vm_namespace | default('') }}", destination: "{{ restore_namespace | default('') }}" }]
   when:

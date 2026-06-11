@@ -9,7 +9,7 @@
     dst_oc_api_url: https://api.dst.example.openshift.com:6443
     dst_oc_api_token: <your_dst_api_token>
     validate_certs: false
-    src_vm_label: app=my-vm
+    src_vm_label: protect-vms
     dst_appvault_name: dst-appvault-ontap
     src_application_name: my-application
     src_vm_namespace: src-vm-namespace

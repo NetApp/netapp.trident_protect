@@ -12,14 +12,16 @@
 # If the snapshot schedule continues running after VM deletion, it will create snapshots with no VMs,
 # and the AMR will use the latest (empty) snapshot, resulting in no VMs being restored on the destination cluster.
 
-# Verify required variables are defined and not empty
+# Verify required variables are defined and not empty.
+# Note: src_oc_api_url / src_oc_api_token are only required when simulate_disaster
+# is true (we use them to delete the Schedule and the source VMs). In a real
+# disaster the source cluster may be unreachable, so we do NOT require them in
+# that path.
 - name: Verify required variables are defined and not empty
   ansible.builtin.fail:
     msg: "{{ item }} is not defined or empty"
   when: "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
   loop:
-    - src_oc_api_url
-    - src_oc_api_token
     - dst_oc_api_url
     - dst_oc_api_token
     - src_vm_namespace
@@ -28,6 +30,16 @@
     - src_appvault_name
     - dst_appvault_name
     - src_application_name
+
+- name: Verify source cluster credentials are defined when simulate_disaster is true
+  ansible.builtin.fail:
+    msg: "{{ item }} is required when simulate_disaster is true"
+  when:
+    - simulate_disaster | default(false) | bool
+    - "vars[item] is not defined or (vars[item] | default('') | string | length == 0)"
+  loop:
+    - src_oc_api_url
+    - src_oc_api_token
 
 # Validate appmirrorrelationship_specs structure (used unconditionally to promote the AMR)
 - name: Validate appmirrorrelationship_specs is defined with required keys

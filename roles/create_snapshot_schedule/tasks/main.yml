@@ -17,6 +17,25 @@
     - snapshot_retention_count
     - snapshot_minute
 
+# Validate snapshot_granularity value and ensure the time fields it requires are set.
+# Trident Protect Schedule CR requires different fields depending on granularity:
+#   Hourly  -> minute
+#   Daily   -> hour, minute
+#   Weekly  -> hour, minute, dayOfWeek
+#   Monthly -> hour, minute, dayOfMonth
+- name: Validate snapshot_granularity and granularity-specific time fields
+  ansible.builtin.assert:
+    that:
+      - snapshot_granularity in ['Hourly', 'Daily', 'Weekly', 'Monthly']
+      - (snapshot_granularity == 'Hourly') or (snapshot_hour is defined and (snapshot_hour | string | length) > 0)
+      - (snapshot_granularity != 'Weekly') or (snapshot_day_of_week is defined and (snapshot_day_of_week | string | length) > 0)
+      - (snapshot_granularity != 'Monthly') or (snapshot_day_of_month is defined and (snapshot_day_of_month | string | length) > 0)
+    fail_msg: >-
+      snapshot_granularity must be one of [Hourly, Daily, Weekly, Monthly] and the time fields
+      it requires (hour for Daily/Weekly/Monthly, dayOfWeek for Weekly, dayOfMonth for Monthly)
+      must be defined.
+    success_msg: snapshot_granularity and the corresponding time fields validated successfully
+
 # Define anchor for OpenShift/Kubernetes API login info
 - name: Define anchor for OpenShift/Kubernetes API login info
   ansible.builtin.set_fact:

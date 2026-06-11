@@ -22,9 +22,6 @@
     appmirrorrelationship_specs:
       name: app-mirror-relationship
       storage_class: ontap-san-sc
-      namespaceMapping:
-        - source: src-vm-namespace
-          destination: dst-vm-namespace
       recurrence_rule:
         dtstart: 20240101T000000Z
         rrule: FREQ=HOURLY;INTERVAL=1

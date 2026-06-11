@@ -400,4 +400,21 @@
   tags:
     - tp_verify_snapshotinplacerestore_all
 
+# Final assertion: ensure the requested VMs and PVCs are actually present in the namespace
+# after restoration. Without this, earlier tasks could be skipped on error paths and the
+# role would still report success.
+- name: Assert all VMs and PVCs were restored successfully in namespace - {{ vm_namespace | default('') }}
+  ansible.builtin.assert:
+    that:
+      - restored_vms_info is defined and restored_vms_info.resources is defined
+      - restored_pvcs_info is defined and restored_pvcs_info.resources is defined
+      - vm_list | difference(restored_vms_info.resources | map(attribute='metadata.name') | list) | length == 0
+      - pvc_list | difference(restored_pvcs_info.resources | map(attribute='metadata.name') | list) | length == 0
+    fail_msg: >-
+      Some VMs or PVCs are missing in namespace '{{ vm_namespace | default('') }}' after restoration.
+      Expected VMs: {{ vm_list }}, Expected PVCs: {{ pvc_list }}.
+    success_msg: All requested VMs and PVCs were restored successfully.
+  tags:
+    - tp_verify_snapshotinplacerestore_all
+
 # End of Snapshot and Restore Scenario tasks

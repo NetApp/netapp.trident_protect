@@ -17,10 +17,8 @@
     dst_vm_namespace: dst-vm-namespace
     appmirrorrelationship_specs:
       name: app-mirror-relationship
-      namespaceMapping:
-        - source: src-vm-namespace
-          destination: dst-vm-namespace
-    src_scheduled_snapshot: false
+    # Exactly one of the two snapshot-mode flags below must be true.
+    src_scheduled_snapshot: true
     src_on_demand_snapshot: false
     src_snapshot_schedule_specs:
       name: snapshot-schedule
