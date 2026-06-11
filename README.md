@@ -2,7 +2,7 @@
 
 # Ansible Validated Content Collection for NetApp Trident Protect
 
-This collection includes a variety of validated Ansible Roles to automate and manage Day-2 use cases involving NetApp Trident Protect in a Red Hat OpenShift Virtualization environment. It covers common application data management workflows such as Backup and Restore, Snapshot scheduling and Restore, and Disaster Recovery (SnapMirror Replication, Failover, Reverse Resync, and Failback).
+This collection includes a variety of validated Ansible Roles to automate and manage Day-2 use cases involving NetApp Trident Protect in a Red Hat OpenShift Virtualization environment. It covers common application data management workflows such as Backup and Restore, Snapshot scheduling and Restore, and Disaster Recovery (SnapMirror Replication, Failover, Reverse Resync, and Failback) workflows.
 
 ## Dependencies
 
@@ -58,21 +58,21 @@ workflows/ diagrams below show the order in which roles are typically run.
 ### Common prerequisites
 
 The [`trident_protect_common`](roles/trident_protect_common/README.md) role
-creates the shared objects (Secret, AppVault, Application CR, VM/PVC labels)
+creates the shared objects (Secrets, AppVaults, Application CRs, VMs/PVCs labels)
 that the Backup/Restore and Snapshot/Restore scenarios depend on. Run it once
 per cluster before the scenario roles below.
 
 ### Backup and Restore workflow
 
-1. [`trident_protect_common`](roles/trident_protect_common/README.md) — create Secret, AppVault, Application, label VMs/PVCs.
-2. [`backup_and_restore_scenario`](roles/backup_and_restore_scenario/README.md) — on-demand backup and restore.
+1. [`trident_protect_common`](roles/trident_protect_common/README.md) — Create Secret, AppVault, Application, label VMs/PVCs.
+2. [`backup_and_restore_scenario`](roles/backup_and_restore_scenario/README.md) — Perform on-demand backup and restore VMs to a different namespace.
 
 ### Snapshot and Restore workflow
 
-1. [`trident_protect_common`](roles/trident_protect_common/README.md) — create Secret, AppVault, Application, label VMs/PVCs.
-2. [`create_snapshot_schedule`](roles/create_snapshot_schedule/README.md) — create the periodic snapshot `Schedule` CR.
-3. *(wait for the schedule to produce at least one snapshot)*
-4. [`snapshot_and_restore_scenario`](roles/snapshot_and_restore_scenario/README.md) — restore VMs from the latest snapshot.
+1. [`trident_protect_common`](roles/trident_protect_common/README.md) — Create Secret, AppVault, Application, label VMs/PVCs.
+2. [`create_snapshot_schedule`](roles/create_snapshot_schedule/README.md) — Create the periodic snapshot `Schedule` CR.
+3. *(Wait for the schedule to produce at least one snapshot)*
+4. [`snapshot_and_restore_scenario`](roles/snapshot_and_restore_scenario/README.md) — Restore VMs from the latest snapshot to the same namespace.
 
 ### Disaster Recovery (AppMirrorRelationship) workflow
 
@@ -80,19 +80,36 @@ The DR roles are designed to be executed in sequence across the source and
 destination OpenShift clusters. The full lifecycle (replication → failover →
 reverse resync → failback) is:
 
-1. [`dr_amr_prerequisites`](roles/dr_amr_prerequisites/README.md) — set up secrets, AppVaults, Application, and snapshots on source and destination clusters.
-2. [`dr_amr_config`](roles/dr_amr_config/README.md) — create the `AppMirrorRelationship` (AMR) to start replication.
-3. [`dr_failover`](roles/dr_failover/README.md) — fail over the replicated application/ VM to the destination cluster after a disaster on the source.
-4. [`dr_reverse_resync_prerequisites`](roles/dr_reverse_resync_prerequisites/README.md) — validate/prepare the new source (original destination) cluster for reverse resync.
-5. [`dr_reverse_resync_config`](roles/dr_reverse_resync_config/README.md) — reverse resync the AMR so replication flows back toward the original primary.
-6. [`dr_failback_promote`](roles/dr_failback_promote/README.md) — promote the AMR on the original source to initiate failback of VMs.
-7. [`dr_failback_prepare_forward_amr`](roles/dr_failback_prepare_forward_amr/README.md) — prepare to re-establish forward replication from the original primary.
-8. [`dr_failback_establish_forward_amr`](roles/dr_failback_establish_forward_amr/README.md) — re-establish the forward AMR from original source to destination, completing failback.
+1. [`dr_amr_prerequisites`](roles/dr_amr_prerequisites/README.md) — Set up secrets, AppVaults, Application, and snapshots on source and destination clusters.
+2. [`dr_amr_config`](roles/dr_amr_config/README.md) — Create the `AppMirrorRelationship` (AMR) to start replication.
+3. [`dr_failover`](roles/dr_failover/README.md) — Fail over the replicated application/ VMs to the destination cluster after a disaster on the source.
+4. [`dr_reverse_resync_prerequisites`](roles/dr_reverse_resync_prerequisites/README.md) — Validate/prepare the new source (original destination) cluster for reverse resync.
+5. [`dr_reverse_resync_config`](roles/dr_reverse_resync_config/README.md) — Reverse resync the AMR so replication flows back toward the original primary.
+6. [`dr_failback_promote`](roles/dr_failback_promote/README.md) — Promote the AMR on the original source to initiate failback of VMs.
+7. [`dr_failback_prepare_forward_amr`](roles/dr_failback_prepare_forward_amr/README.md) — Prepare to re-establish forward replication from the original primary.
+8. [`dr_failback_establish_forward_amr`](roles/dr_failback_establish_forward_amr/README.md) — Re-establish the forward AMR from original source to destination, completing failback.
 
 
-> Note: Steps 3–8 are only required if a disaster (or planned failover) and
-> subsequent failback are exercised. Steady-state replication only needs
-> steps 1–2.
+> **Note on when to run each step:**
+>
+> - **Steps 1–2** are always required to establish steady-state SnapMirror replication.
+> - **Step 3** is executed when a disaster or unplanned failover occurs (or for a
+>   planned failover). After failover, VMs are running on the destination
+>   cluster with no active replication.
+> - **Steps 4–5** (reverse resync) re-establish replication in the reverse
+>   direction — from the destination back toward the original source. These are
+>   the minimum steps required after a failover to restore data protection. They
+>   can be performed immediately after step 3 or deferred until convenient, as
+>   long as the customer is comfortable without active replication in the interim.
+> - **Steps 6–8** (failback) promote workloads back to the original source cluster
+>   and re-establish forward replication. The timing of these steps is entirely
+>   at the customer's discretion:
+>   - **Immediate failback**: If downtime on the destination cluster is acceptable
+>     right away, proceed directly from step 5 to steps 6–8.
+>   - **Deferred failback**: If the workloads must keep running on the destination
+>     cluster without interruption, complete steps 4–5 now to restore data
+>     protection, then execute steps 6–8 during a planned maintenance window when
+>     downtime can be accommodated.
 
 ```mermaid
 flowchart TD
